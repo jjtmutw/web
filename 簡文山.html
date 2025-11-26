@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>簡文山個人資料</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+            max-width: 600px;
+            margin: auto;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>簡文山個人資料</h1>
+    <p>按下「播放」按鈕進行語音播放。</p>
+    <textarea id="textInput" placeholder="輸入文字...">
+        姓名:簡文山
+        生日:1964/07/01
+        性別:男
+        連絡人:王合正
+        連絡電話:0970405855
+        連絡信箱:jjtmutw@gmail.com
+    </textarea>
+    <button id="playButton">語音播放</button>
+
+    <script>
+        document.getElementById('playButton').addEventListener('click', function() {
+            const text = document.getElementById('textInput').value;
+            if (text.trim() === '') {
+                alert('請輸入文字');
+                return;
+            }
+
+            const speech = new SpeechSynthesisUtterance(text);
+            speech.lang = 'zh-TW';
+            speech.rate = 1;
+            speech.pitch = 1;
+            
+            window.speechSynthesis.speak(speech);
+        });
+    </script>
+</body>
+</html>
