@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>MQTT IoT 控制面板（jjiot/ + 燈泡圖示）</title>
+
+  <!-- mqtt.js（WebSocket 用戶端） -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, "Microsoft JhengHei", sans-serif;
+      background: #020617;
+      color: #e5e7eb;
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: #020617;
+      border-radius: 16px;
+      padding: 24px 28px;
+      width: 390px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.7);
+      border: 1px solid #1f2937;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin: 0;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      text-align: center;
+      color: #9ca3af;
+      margin-top: 4px;
+      margin-bottom: 16px;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #020617;
+      border-radius: 10px;
+      border: 1px solid #1f2937;
+      padding: 8px 10px;
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #ef4444;
+    }
+    .dot.connected {
+      background: #22c55e;
+    }
+    .dot.reconnecting {
+      background: #eab308;
+    }
+
+    .btn-mini {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      background: #111827;
+      color: #e5e7eb;
+      cursor: pointer;
+    }
+
+    .switch-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    .switch-row:last-child {
+      border-bottom: none;
+    }
+
+    .switch-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .switch-info-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .switch-info-sub {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+
+    .switch-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      margin-left: 6px;
+      border: 1px solid #4b5563;
+      color: #cbd5f5;
+    }
+
+    /* 燈泡圖示 */
+    .bulb {
+      font-size: 24px;
+      transition: color 0.2s ease, text-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .bulb.off {
+        color: #cbd5e1;     /* 亮灰色 → 黑白效果 */
+        filter: grayscale(100%);
+        text-shadow: none;   /* 無光暈 */
+        transform: scale(1);
+    }
+
+    .bulb.on {
+      color: #facc15;
+      text-shadow: 0 0 10px rgba(250, 204, 21, 0.85);
+      transform: scale(1.05);
+    }
+
+    .toggle {
+      width: 64px;
+      height: 32px;
+      border-radius: 999px;
+      background: #111827;
+      border: 1px solid #374151;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease;
+      display: flex;
+      align-items: center;
+      padding: 0 3px;
+      box-sizing: border-box;
+    }
+
+    .toggle.on {
+      background: #22c55e;
+      border-color: #4ade80;
+    }
+
+    .knob {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: #f9fafb;
+      position: relative;
+      left: 0;
+      transition: transform 0.2s ease;
+    }
+
+    .toggle.on .knob {
+      transform: translateX(28px);
+    }
+
+    .toggle-label {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      pointer-events: none;
+      color: #e5e7eb;
+    }
+
+    .log-box {
+      margin-top: 14px;
+      font-size: 11px;
+      max-height: 140px;
+      overflow-y: auto;
+      border-radius: 10px;
+      border: 1px solid #1f2937;
+      padding: 8px 10px;
+      background: #020617;
+    }
+
+    .log-line {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1>MQTT IoT 控制器</h1>
+    <div class="subtitle">連接 mqttgo.io 伺服器</div>
+
+    <!-- 連線狀態 -->
+    <div class="status-bar">
+      <div class="status-left">
+        <div id="connDot" class="dot"></div>
+        <div>
+          <div id="connText">Disconnected</div>
+          <div id="connDetail" style="font-size:10px;color:#6b7280;">尚未連線</div>
+        </div>
+      </div>
+      <button class="btn-mini" id="btnReconnect">重新連線</button>
+    </div>
+
+    <!-- Switch 1 -->
+    <div class="switch-row">
+      <div class="switch-left">
+        <span id="bulb1" class="bulb off">💡</span>
+        <div>
+          <div class="switch-info-title">
+            Switch 1
+            <span class="switch-badge">topic: jjiot/switch1</span>
+          </div>
+          <div class="switch-info-sub">
+            狀態：<span id="state1Text">OFF</span>
+          </div>
+        </div>
+      </div>
+      <div id="switch1" class="toggle" data-state="off">
+        <div class="knob"></div>
+        <div class="toggle-label" id="label1">OFF</div>
+      </div>
+    </div>
+
+    <!-- Switch 2 -->
+    <div class="switch-row">
+      <div class="switch-left">
+        <span id="bulb2" class="bulb off">💡</span>
+        <div>
+          <div class="switch-info-title">
+            Switch 2
+            <span class="switch-badge">topic: jjiot/switch2</span>
+          </div>
+          <div class="switch-info-sub">
+            狀態：<span id="state2Text">OFF</span>
+          </div>
+        </div>
+      </div>
+      <div id="switch2" class="toggle" data-state="off">
+        <div class="knob"></div>
+        <div class="toggle-label" id="label2">OFF</div>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="log-box" id="logBox"></div>
+  </div>
+
+  <script>
+    // ======== LOG ========
+    function log(msg) {
+      const box = document.getElementById("logBox");
+      const p   = document.createElement("p");
+      p.className = "log-line";
+      p.textContent = "[" + new Date().toLocaleTimeString() + "] " + msg;
+      box.prepend(p);
+    }
+
+    // ======== UI 狀態 ========
+    function setConnectionStatus(mode, detail) {
+      const dot = document.getElementById("connDot");
+      const text = document.getElementById("connText");
+      const det  = document.getElementById("connDetail");
+
+      dot.className = "dot";
+
+      if (mode === "connected") {
+        dot.classList.add("connected");
+        text.textContent = "Connected";
+      } else if (mode === "reconnecting") {
+        dot.classList.add("reconnecting");
+        text.textContent = "Reconnecting...";
+      } else {
+        text.textContent = "Disconnected";
+      }
+
+      det.textContent = detail || "";
+    }
+
+    function setSwitchUI(id, isOn, fromMQTT) {
+      const sw       = document.getElementById(id);
+      const labelObj = document.getElementById(id === "switch1" ? "label1" : "label2");
+      const stateObj = document.getElementById(id === "switch1" ? "state1Text" : "state2Text");
+      const bulbObj  = document.getElementById(id === "switch1" ? "bulb1" : "bulb2");
+
+      if (isOn) {
+        sw.classList.add("on");
+        sw.dataset.state = "on";
+        labelObj.textContent = "ON";
+        stateObj.textContent = "ON";
+        bulbObj.classList.remove("off");
+        bulbObj.classList.add("on");
+      } else {
+        sw.classList.remove("on");
+        sw.dataset.state = "off";
+        labelObj.textContent = "OFF";
+        stateObj.textContent = "OFF";
+        bulbObj.classList.remove("on");
+        bulbObj.classList.add("off");
+      }
+
+      if (fromMQTT) {
+        log(`↩ 來自 MQTT：${id} = ${isOn ? "on" : "off"}`);
+      }
+    }
+
+    // ======== MQTT Client ========
+    const TOPIC1 = "jjiot/switch1";
+    const TOPIC2 = "jjiot/switch2";
+
+    const client = mqtt.connect("wss://mqttgo.io:8084/mqtt", {
+      reconnectPeriod: 2000,
+      connectTimeout: 8000
+    });
+
+    client.on("connect", () => {
+      setConnectionStatus("connected", "成功連線");
+      log("🟢 已連線至 mqttgo.io");
+
+      client.subscribe([TOPIC1, TOPIC2], (err) => {
+        if (err) log("❌ 訂閱錯誤：" + err);
+        else    log("📡 已訂閱：" + TOPIC1 + ", " + TOPIC2);
+      });
+    });
+
+    client.on("reconnect", () => {
+      setConnectionStatus("reconnecting", "重新連線中…");
+    });
+
+    client.on("close", () => {
+      setConnectionStatus("disconnected", "連線關閉");
+    });
+
+    client.on("message", (topic, payloadBuf) => {
+      const payload = payloadBuf.toString().trim().toLowerCase();
+      const isOn = (payload === "on");
+
+      if (topic === TOPIC1) setSwitchUI("switch1", isOn, true);
+      if (topic === TOPIC2) setSwitchUI("switch2", isOn, true);
+    });
+
+    // ======== Switch 點擊 → 發佈 ========
+    function bindSwitch(id, topic) {
+      document.getElementById(id).onclick = () => {
+        const sw = document.getElementById(id);
+        const current = sw.dataset.state === "on";
+        const next = !current;
+
+        setSwitchUI(id, next, false);
+
+        client.publish(topic, next ? "on" : "off");
+        log(`📤 發佈：${topic} = ${next ? "on" : "off"}`);
+      };
+    }
+
+    bindSwitch("switch1", TOPIC1);
+    bindSwitch("switch2", TOPIC2);
+
+    // 初始狀態 OFF
+    setSwitchUI("switch1", false, false);
+    setSwitchUI("switch2", false, false);
+
+    // 手動重連
+    document.getElementById("btnReconnect").onclick = () => {
+      client.reconnect();
+      log("🌀 手動觸發 reconnect()");
+    };
+  </script>
+</body>
+</html>
