@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data>
+  <person>
+    <name>Lin Xiaoyu</name>
+    <dob>1997 / 07 / 02</dob>
+    <passport>350****02</passport>
+    <blood>B Rh+</blood>
+    <height>170 cm</height>
+    <weight>65 kg</weight>
+
+    <allergy>對花粉過敏</allergy>
+    <history>B型糖尿病</history>
+    <family>心臟病</family>
+    <meds>長期使用阿斯匹林</meds>
+    <surgery>闌尾炎手術</surgery>
+
+    <photo>girl.png</photo>
+
+    <ice>
+      <dad>+886-928-514-736</dad>
+      <mom>+886-937-682-195</mom>
+    </ice>
+
+    <lastUpdatedZh>最後更新: 2026/02/09</lastUpdatedZh>
+    <lastUpdatedEn>Last Updated: Feb 09, 2026</lastUpdatedEn>
+  </person>
+
+  <!-- i18n dictionary -->
+  <i18n>
+    <t id="title">
+      <l lang="zh">緊急個人資訊</l>
+      <l lang="en">EMERGENCY MEDICAL ID</l>
+      <l lang="jp">緊急医療情報</l>
+      <l lang="kr">긴급 의료 정보</l>
+      <l lang="vn">THÔNG TIN KHẨN CẤP</l>
+      <l lang="th">ข้อมูลการแพทย์ฉุกเฉิน</l>
+      <l lang="fr">URGENCE MÉDICALE</l>
+      <l lang="de">NOTFALLAUSWEIS</l>
+    </t>
+
+    <t id="basic"><l lang="zh">基本資料</l><l lang="en">BASIC INFO</l><l lang="jp">基本情報</l><l lang="kr">기본 정보</l><l lang="vn">THÔNG TIN CƠ BẢN</l><l lang="th">ข้อมูลพื้นฐาน</l><l lang="fr">INFOS DE BASE</l><l lang="de">BASISINFOS</l></t>
+    <t id="medical"><l lang="zh">醫療資訊</l><l lang="en">MEDICAL</l><l lang="jp">医療情報</l><l lang="kr">의료 정보</l><l lang="vn">Y TẾ</l><l lang="th">ข้อมูลทางการแพทย์</l><l lang="fr">ALERTE MÉDICALE</l><l lang="de">MEDIZINISCHE DATEN</l></t>
+    <t id="contact"><l lang="zh">緊急聯絡</l><l lang="en">CONTACTS</l><l lang="jp">緊急連絡先</l><l lang="kr">비상 연락처</l><l lang="vn">LIÊN HỆ</l><l lang="th">ติดต่อฉุกเฉิน</l><l lang="fr">CONTACTS</l><l lang="de">KONTAKTE</l></t>
+
+    <t id="dob"><l lang="zh">出生日期</l><l lang="en">Date of Birth</l><l lang="jp">生年月日</l><l lang="kr">생년월일</l><l lang="vn">Ngày sinh</l><l lang="th">วันเกิด</l><l lang="fr">Date de naissance</l><l lang="de">Geburtsdatum</l></t>
+    <t id="passport"><l lang="zh">護照號碼</l><l lang="en">Passport No.</l><l lang="jp">パスポート番号</l><l lang="kr">여권 번호</l><l lang="vn">Số hộ chiếu</l><l lang="th">หมายเลขพาสปอร์ต</l><l lang="fr">Passeport n°</l><l lang="de">Reisepass-Nr.</l></t>
+    <t id="blood"><l lang="zh">血型</l><l lang="en">Blood Type</l><l lang="jp">血液型</l><l lang="kr">혈액형</l><l lang="vn">Nhóm máu</l><l lang="th">กรุ๊ปเลือด</l><l lang="fr">Groupe Sanguin</l><l lang="de">Blutgruppe</l></t>
+    <t id="height"><l lang="zh">身高</l><l lang="en">Height</l><l lang="jp">身長</l><l lang="kr">키</l><l lang="vn">Chiều cao</l><l lang="th">ส่วนสูง</l><l lang="fr">Taille</l><l lang="de">Körpergröße</l></t>
+    <t id="weight"><l lang="zh">體重</l><l lang="en">Weight</l><l lang="jp">体重</l><l lang="kr">몸무게</l><l lang="vn">Cân nặng</l><l lang="th">น้ำหนัก</l><l lang="fr">Poids</l><l lang="de">Gewicht</l></t>
+
+    <t id="allergy"><l lang="zh">過敏紀錄</l><l lang="en">Allergies</l><l lang="jp">アレルギー</l><l lang="kr">알레르기</l><l lang="vn">Dị ứng</l><l lang="th">ประวัติการแพ้</l><l lang="fr">Allergies</l><l lang="de">Allergien</l></t>
+    <t id="history"><l lang="zh">病史</l><l lang="en">Medical History</l><l lang="jp">既往歴</l><l lang="kr">병력</l><l lang="vn">Tiền sử bệnh</l><l lang="th">ประวัติการรักษา</l><l lang="fr">Antécédents</l><l lang="de">Krankengeschichte</l></t>
+    <t id="family"><l lang="zh">家族史</l><l lang="en">Family History</l><l lang="jp">家族歴</l><l lang="kr">가족력</l><l lang="vn">Tiền sử gia đình</l><l lang="th">ประวัติครอบครัว</l><l lang="fr">Antécédents familiaux</l><l lang="de">Familienanamnese</l></t>
+    <t id="meds"><l lang="zh">用藥史</l><l lang="en">Medications</l><l lang="jp">服薬</l><l lang="kr">복용 약</l><l lang="vn">Thuốc đang dùng</l><l lang="th">ยาที่ใช้</l><l lang="fr">Médicaments</l><l lang="de">Medikamente</l></t>
+    <t id="surgery"><l lang="zh">手術史</l><l lang="en">Surgery History</l><l lang="jp">手術歴</l><l lang="kr">수술 이력</l><l lang="vn">Phẫu thuật</l><l lang="th">ประวัติการผ่าตัด</l><l lang="fr">Chirurgies</l><l lang="de">Operationen</l></t>
+
+    <t id="ice"><l lang="zh">緊急聯絡人</l><l lang="en">ICE Contact</l><l lang="jp">緊急連絡先</l><l lang="kr">비상 연락처</l><l lang="vn">Liên hệ khẩn cấp</l><l lang="th">ติดต่อฉุกเฉิน</l><l lang="fr">Contact d'urgence</l><l lang="de">Notfallkontakt</l></t>
+
+    <t id="allergyAlertTitle">
+      <l lang="zh">過敏警示</l><l lang="en">ALLERGY ALERT</l><l lang="jp">アレルギー警告</l><l lang="kr">알레르기 경고</l>
+      <l lang="vn">CẢNH BÁO DỊ ỨNG</l><l lang="th">คำเตือนการแพ้</l><l lang="fr">ALERTE ALLERGIE</l><l lang="de">ALLERGIE WARNUNG</l>
+    </t>
+
+    <t id="pillBlood"><l lang="zh">血型</l><l lang="en">Blood</l><l lang="jp">血液型</l><l lang="kr">혈액형</l><l lang="vn">Máu</l><l lang="th">เลือด</l><l lang="fr">Sang</l><l lang="de">Blut</l></t>
+
+    <t id="dad"><l lang="zh">父親</l><l lang="en">Dad</l><l lang="jp">父</l><l lang="kr">아빠</l><l lang="vn">Bố</l><l lang="th">พ่อ</l><l lang="fr">Père</l><l lang="de">Vater</l></t>
+    <t id="mom"><l lang="zh">母親</l><l lang="en">Mom</l><l lang="jp">母</l><l lang="kr">엄마</l><l lang="vn">Mẹ</l><l lang="th">แม่</l><l lang="fr">Mère</l><l lang="de">Mutter</l></t>
+
+    <t id="photoFallback">
+      <l lang="zh">照片</l><l lang="en">PHOTO</l><l lang="jp">写真</l><l lang="kr">사진</l>
+      <l lang="vn">ẢNH</l><l lang="th">รูป</l><l lang="fr">PHOTO</l><l lang="de">FOTO</l>
+    </t>
+  </i18n>
+</data>
