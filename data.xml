@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <data>
+
   <person>
     <name>Lin Xiaoyu</name>
     <dob>1997 / 07 / 02</dob>
@@ -8,11 +9,61 @@
     <height>170 cm</height>
     <weight>65 kg</weight>
 
-    <allergy>對花粉過敏</allergy>
-    <history>B型糖尿病</history>
-    <family>心臟病</family>
-    <meds>長期使用阿斯匹林</meds>
-    <surgery>闌尾炎手術</surgery>
+    <!-- Medical content translated into 8 languages -->
+    <allergy>
+      <l lang="zh">對花粉過敏</l>
+      <l lang="en">Pollen allergy</l>
+      <l lang="jp">花粉アレルギー</l>
+      <l lang="kr">꽃가루 알레르기</l>
+      <l lang="vn">Dị ứng phấn hoa</l>
+      <l lang="th">แพ้เกสรดอกไม้</l>
+      <l lang="fr">Allergie au pollen</l>
+      <l lang="de">Pollenallergie</l>
+    </allergy>
+
+    <history>
+      <l lang="zh">B型糖尿病</l>
+      <l lang="en">Type 2 Diabetes</l>
+      <l lang="jp">2型糖尿病</l>
+      <l lang="kr">제2형 당뇨병</l>
+      <l lang="vn">Đái tháo đường type 2</l>
+      <l lang="th">เบาหวานชนิดที่ 2</l>
+      <l lang="fr">Diabète de type 2</l>
+      <l lang="de">Diabetes Typ 2</l>
+    </history>
+
+    <family>
+      <l lang="zh">心臟病</l>
+      <l lang="en">Heart disease</l>
+      <l lang="jp">心臓病</l>
+      <l lang="kr">심장병</l>
+      <l lang="vn">Bệnh tim</l>
+      <l lang="th">โรคหัวใจ</l>
+      <l lang="fr">Maladie cardiaque</l>
+      <l lang="de">Herzerkrankung</l>
+    </family>
+
+    <meds>
+      <l lang="zh">長期使用阿斯匹林</l>
+      <l lang="en">Long-term aspirin use</l>
+      <l lang="jp">アスピリン長期使用</l>
+      <l lang="kr">아스피린 장기 복용</l>
+      <l lang="vn">Dùng aspirin dài hạn</l>
+      <l lang="th">ใช้แอสไพรินระยะยาว</l>
+      <l lang="fr">Aspirine au long cours</l>
+      <l lang="de">Langzeit-Aspirin</l>
+    </meds>
+
+    <surgery>
+      <l lang="zh">闌尾炎手術</l>
+      <l lang="en">Appendectomy</l>
+      <l lang="jp">虫垂切除術</l>
+      <l lang="kr">충수 절제술</l>
+      <l lang="vn">Cắt ruột thừa</l>
+      <l lang="th">ผ่าตัดไส้ติ่ง</l>
+      <l lang="fr">Appendicectomie</l>
+      <l lang="de">Appendektomie</l>
+    </surgery>
 
     <photo>girl.png</photo>
 
@@ -21,11 +72,19 @@
       <mom>+886-937-682-195</mom>
     </ice>
 
-    <lastUpdatedZh>最後更新: 2026/02/09</lastUpdatedZh>
-    <lastUpdatedEn>Last Updated: Feb 09, 2026</lastUpdatedEn>
+    <lastUpdated>
+      <l lang="zh">最後更新: 2026/02/09</l>
+      <l lang="en">Last Updated: Feb 09, 2026</l>
+      <l lang="jp">最終更新日: 2026/02/09</l>
+      <l lang="kr">최종 업데이트: 2026/02/09</l>
+      <l lang="vn">Cập nhật mới nhất: 09/02/2026</l>
+      <l lang="th">อัปเดตล่าสุด: 09/02/2026</l>
+      <l lang="fr">Mis à jour: 09 fév. 2026</l>
+      <l lang="de">Letztes Update: 09. Feb. 2026</l>
+    </lastUpdated>
   </person>
 
-  <!-- i18n dictionary -->
+  <!-- i18n dictionary (labels / section titles) -->
   <i18n>
     <t id="title">
       <l lang="zh">緊急個人資訊</l>
@@ -71,4 +130,5 @@
       <l lang="vn">ẢNH</l><l lang="th">รูป</l><l lang="fr">PHOTO</l><l lang="de">FOTO</l>
     </t>
   </i18n>
+
 </data>

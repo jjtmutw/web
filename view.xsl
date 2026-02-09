@@ -5,10 +5,30 @@
   <xsl:output method="html" encoding="UTF-8" indent="yes"/>
   <xsl:param name="lang" select="'zh'"/>
 
-  <!-- translate helper -->
+  <!-- translation helper (labels / section titles) -->
   <xsl:template name="tr">
     <xsl:param name="id"/>
-    <xsl:value-of select="/data/i18n/t[@id=$id]/l[@lang=$lang]"/>
+    <xsl:variable name="v" select="/data/i18n/t[@id=$id]/l[@lang=$lang]"/>
+    <xsl:choose>
+      <xsl:when test="string-length(normalize-space($v)) &gt; 0"><xsl:value-of select="$v"/></xsl:when>
+      <xsl:otherwise><xsl:value-of select="/data/i18n/t[@id=$id]/l[@lang='en']"/></xsl:otherwise>
+    </xsl:choose>
+  </xsl:template>
+
+  <!-- person value helper (medical content + footer) -->
+  <xsl:template name="pv">
+    <xsl:param name="node"/>
+    <xsl:variable name="v" select="$node/l[@lang=$lang]"/>
+    <xsl:choose>
+      <xsl:when test="string-length(normalize-space($v)) &gt; 0"><xsl:value-of select="$v"/></xsl:when>
+      <xsl:otherwise>
+        <xsl:variable name="en" select="$node/l[@lang='en']"/>
+        <xsl:choose>
+          <xsl:when test="string-length(normalize-space($en)) &gt; 0"><xsl:value-of select="$en"/></xsl:when>
+          <xsl:otherwise><xsl:value-of select="$node/l[@lang='zh']"/></xsl:otherwise>
+        </xsl:choose>
+      </xsl:otherwise>
+    </xsl:choose>
   </xsl:template>
 
   <xsl:template match="/data">
@@ -149,34 +169,36 @@
             <p class="atitle">
               <xsl:call-template name="tr"><xsl:with-param name="id" select="'allergyAlertTitle'"/></xsl:call-template>
             </p>
-            <div class="adesc"><xsl:value-of select="person/allergy"/></div>
+            <div class="adesc">
+              <xsl:call-template name="pv"><xsl:with-param name="node" select="person/allergy"/></xsl:call-template>
+            </div>
           </div>
         </div>
 
         <div class="grid" style="margin-top:10px;">
           <xsl:call-template name="medItem">
             <xsl:with-param name="labelId" select="'allergy'"/>
-            <xsl:with-param name="value" select="person/allergy"/>
+            <xsl:with-param name="node" select="person/allergy"/>
           </xsl:call-template>
 
           <xsl:call-template name="medItem">
             <xsl:with-param name="labelId" select="'history'"/>
-            <xsl:with-param name="value" select="person/history"/>
+            <xsl:with-param name="node" select="person/history"/>
           </xsl:call-template>
 
           <xsl:call-template name="medItem">
             <xsl:with-param name="labelId" select="'family'"/>
-            <xsl:with-param name="value" select="person/family"/>
+            <xsl:with-param name="node" select="person/family"/>
           </xsl:call-template>
 
           <xsl:call-template name="medItem">
             <xsl:with-param name="labelId" select="'meds'"/>
-            <xsl:with-param name="value" select="person/meds"/>
+            <xsl:with-param name="node" select="person/meds"/>
           </xsl:call-template>
 
           <xsl:call-template name="medItem">
             <xsl:with-param name="labelId" select="'surgery'"/>
-            <xsl:with-param name="value" select="person/surgery"/>
+            <xsl:with-param name="node" select="person/surgery"/>
           </xsl:call-template>
         </div>
 
@@ -209,10 +231,7 @@
       </div>
 
       <div class="footer">
-        <xsl:choose>
-          <xsl:when test="$lang='en'"><xsl:value-of select="person/lastUpdatedEn"/></xsl:when>
-          <xsl:otherwise><xsl:value-of select="person/lastUpdatedZh"/></xsl:otherwise>
-        </xsl:choose>
+        <xsl:call-template name="pv"><xsl:with-param name="node" select="person/lastUpdated"/></xsl:call-template>
       </div>
     </div>
   </xsl:template>
@@ -220,7 +239,7 @@
   <!-- Reusable medical item row -->
   <xsl:template name="medItem">
     <xsl:param name="labelId"/>
-    <xsl:param name="value"/>
+    <xsl:param name="node"/>
     <div class="item">
       <div class="icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none">
@@ -232,7 +251,9 @@
         <span class="label">
           <xsl:call-template name="tr"><xsl:with-param name="id" select="$labelId"/></xsl:call-template>
         </span>
-        <span class="value"><xsl:value-of select="$value"/></span>
+        <span class="value">
+          <xsl:call-template name="pv"><xsl:with-param name="node" select="$node"/></xsl:call-template>
+        </span>
       </div>
     </div>
   </xsl:template>
