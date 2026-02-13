@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HIoT 實驗室電子布告牌</title>
+
+<style>
+  :root{
+    --bg:#0b1220;
+    --text:#e8eefc;
+    --muted:#a9b6d6;
+
+    --ok:#22c55e;
+    --warn:#f59e0b;
+    --busy:#ef4444;
+    --cool:#38bdf8;
+    --gray:#94a3b8;
+    --vac:#a78bfa;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif;
+    background: radial-gradient(1200px 700px at 20% 10%, rgba(96,165,250,.15), transparent 60%),
+                radial-gradient(1000px 600px at 80% 30%, rgba(34,197,94,.10), transparent 60%),
+                var(--bg);
+    color:var(--text);
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:24px;
+  }
+
+  .board{
+    width:min(1200px, 100%);
+    border-radius:22px;
+    overflow:hidden;
+    box-shadow:0 20px 70px rgba(0,0,0,.50);
+    border:1px solid rgba(255,255,255,.10);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  }
+
+  /* White Banner */
+  .banner{
+    background:#fff;
+    height:86px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 34px;
+    gap:18px;
+  }
+  .banner img{
+    height:60px;
+    object-fit:contain;
+    display:block;
+  }
+
+  header{
+    padding:18px 28px 12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:18px;
+  }
+
+  .labname{
+    font-size:44px;
+    font-weight:900;
+    letter-spacing:.6px;
+    line-height:1.1;
+  }
+  .sub{
+    margin-top:8px;
+    color:var(--muted);
+    font-size:15px;
+  }
+
+  .rightTop{
+    text-align:right;
+    min-width:320px;
+  }
+  .clock{
+    font-variant-numeric:tabular-nums;
+    font-size:30px;
+    font-weight:900;
+  }
+  .net{
+    margin-top:8px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:10px;
+    color:var(--muted);
+    font-size:14px;
+  }
+  .dot{
+    width:10px;height:10px;border-radius:999px;background:var(--gray);
+    box-shadow:0 0 0 4px rgba(148,163,184,.15);
+  }
+  .dot.ok{ background:var(--ok); box-shadow:0 0 0 4px rgba(34,197,94,.18); }
+  .dot.bad{ background:var(--busy); box-shadow:0 0 0 4px rgba(239,68,68,.18); }
+
+  /* ✅ 左右 3:1 */
+  main{
+    padding:18px 28px 16px;
+    display:grid;
+    grid-template-columns: 3fr 1fr;
+    gap:16px;
+  }
+
+  /* Left: Status */
+  .statusCard{
+    background: rgba(18,27,46,.82);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:20px;
+    padding:22px;
+    display:flex;
+    flex-direction:column;
+    min-height:360px;
+  }
+
+  .statusBody{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:22px;
+  }
+
+  .statusLine{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+  }
+
+  .pill{
+    width:14px;height:14px;border-radius:999px;
+    background:var(--gray);
+    box-shadow:0 0 0 6px rgba(148,163,184,.12);
+  }
+  .pill.ok{ background:var(--ok); box-shadow:0 0 0 6px rgba(34,197,94,.14); }
+  .pill.warn{ background:var(--warn); box-shadow:0 0 0 6px rgba(245,158,11,.14); }
+  .pill.busy{ background:var(--busy); box-shadow:0 0 0 6px rgba(239,68,68,.14); }
+  .pill.cool{ background:var(--cool); box-shadow:0 0 0 6px rgba(56,189,248,.14); }
+  .pill.gray{ background:var(--gray); box-shadow:0 0 0 6px rgba(148,163,184,.12); }
+  .pill.vac{ background:var(--vac); box-shadow:0 0 0 6px rgba(167,139,250,.16); }
+
+  .badge{
+    padding:8px 14px;
+    border-radius:999px;
+    font-weight:900;
+    letter-spacing:.5px;
+    font-size:14px;
+    border:1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    color:var(--text);
+  }
+
+  .statusText{
+    font-size:104px;
+    font-weight:1000;
+    letter-spacing:1px;
+    line-height:1.02;
+    text-align:center;
+    margin:0;
+  }
+
+  /* Right: Photo */
+  .photoCard{
+    background: rgba(18,27,46,.70);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:20px;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .photoCaption{
+    text-align:center;
+    font-size:24px;
+    font-weight:900;
+    letter-spacing:.5px;
+  }
+  .photoWrap{
+    flex:1;
+    border-radius:16px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.04);
+    min-height:260px;
+  }
+  .photoWrap img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+
+  /* Marquee */
+  .marqueeBar{
+    margin: 0 28px 16px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,.10);
+    background: rgba(18,27,46,.70);
+    overflow:hidden;
+    position:relative;
+    height:56px;
+    display:flex;
+    align-items:center;
+  }
+
+  .marqueeLabel{
+    flex:0 0 auto;
+    padding:0 16px;
+    font-weight:900;
+    letter-spacing:.6px;
+    color:var(--text);
+    border-right:1px solid rgba(255,255,255,.10);
+    height:100%;
+    display:flex;
+    align-items:center;
+    background: rgba(255,255,255,.04);
+  }
+
+  .marqueeViewport{
+    flex:1 1 auto;
+    overflow:hidden;
+    position:relative;
+    height:100%;
+    display:flex;
+    align-items:center;
+  }
+
+  .marqueeTrack{
+    white-space:nowrap;
+    will-change: transform;
+    font-size:22px;
+    font-weight:800;
+    color:var(--text);
+    padding-left:24px;
+  }
+
+  .marqueeMuted{
+    color: var(--muted);
+    font-weight:700;
+  }
+
+  footer{
+    padding:10px 28px 14px;
+    color:var(--muted);
+    font-size:13px;
+    display:flex;
+    justify-content:space-between;
+    border-top:1px solid rgba(255,255,255,.08);
+  }
+
+  @media (max-width: 900px){
+    main{ grid-template-columns: 1fr; }
+    .statusText{ font-size:72px; }
+    .labname{ font-size:34px; }
+    .photoWrap{ min-height:240px; }
+    .rightTop{ min-width:auto; }
+    .marqueeTrack{ font-size:18px; }
+  }
+
+  /* ===== 語音留言 UI ===== */
+  .voiceBtn{
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 9999;
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(18,27,46,.86);
+    color: var(--text);
+    padding: 14px 16px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 18px 50px rgba(0,0,0,.45);
+    backdrop-filter: blur(8px);
+  }
+  .voiceBtn:hover{ transform: translateY(-1px); }
+
+  .voiceModal{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 18px;
+  }
+  .voiceModal.show{ display:flex; }
+
+  .voicePanel{
+    width: min(760px, 96vw);
+    background: rgba(18,27,46,.96);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 24px 80px rgba(0,0,0,.6);
+  }
+  .voiceTitle{
+    font-size: 18px;
+    font-weight: 900;
+    margin-bottom: 10px;
+    letter-spacing: .4px;
+  }
+  .voiceRow{
+    display:flex;
+    gap:10px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+  }
+  .vbtn{
+    border: 1px solid rgba(255,255,255,.16);
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .vbtn:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+  }
+  .vbtn.primary{
+    background: rgba(34,197,94,.18);
+    border-color: rgba(34,197,94,.35);
+  }
+  .vbtn.ghost{
+    background: transparent;
+  }
+  .voiceText{
+    width: 100%;
+    min-height: 180px;
+    resize: vertical;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.05);
+    color: var(--text);
+    padding: 12px;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .voiceHint{
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+</style>
+</head>
+
+<body>
+<div class="board">
+
+  <div class="banner">
+    <img src="tmutitle.png" alt="TMU" onerror="this.style.display='none'">
+    <img src="comlogo.png" alt="COM" onerror="this.style.display='none'">
+  </div>
+
+  <header>
+    <div>
+      <div class="labname" id="labName">健康物聯網 HIoT 實驗室</div>
+      <div class="sub">Laboratory Status Board (MQTT over WSS)</div>
+    </div>
+
+    <div class="rightTop">
+      <div class="clock" id="clock">--:--</div>
+      <div class="net">
+        <span class="dot" id="netDot"></span>
+        <span id="netText">MQTT 未連線</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="statusCard">
+      <div class="statusBody">
+        <div class="statusLine">
+          <span class="pill busy" id="statusPill"></span>
+          <span class="badge" id="statusCode">CLASS</span>
+        </div>
+        <div class="statusText" id="statusText">上課中</div>
+      </div>
+    </section>
+
+    <aside class="photoCard">
+      <div class="photoCaption">簡文山 教授</div>
+      <div class="photoWrap">
+        <img src="jj.jpg" alt="jj" onerror="this.style.objectFit='contain'">
+      </div>
+    </aside>
+  </main>
+
+  <div class="marqueeBar">
+    <div class="marqueeLabel">公告</div>
+    <div class="marqueeViewport" id="marqueeViewport">
+      <div class="marqueeTrack" id="marqueeTrack">
+        <span class="marqueeMuted">等待公告…（可由 MQTT 設定）</span>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div>建議全螢幕（F11）</div>
+    <div>最後更新：<span id="lastUpdate">—</span></div>
+  </footer>
+
+</div>
+
+<!-- 語音留言按鈕 -->
+<button id="voiceBtn" class="voiceBtn" title="語音留言">🎤 語音留言</button>
+
+<!-- 語音留言面板 -->
+<div id="voiceModal" class="voiceModal" aria-hidden="true">
+  <div class="voicePanel">
+    <div class="voiceTitle">語音留言 → 寄到 jj@tmu.edu.tw</div>
+
+    <div class="voiceRow">
+      <button id="startRec" class="vbtn">開始錄音</button>
+      <button id="stopRec" class="vbtn ghost" disabled>停止</button>
+      <button id="clearRec" class="vbtn ghost">清除</button>
+    </div>
+
+    <textarea id="voiceText" class="voiceText" placeholder="語音轉文字會出現在這裡，也可手動修改"></textarea>
+
+    <div class="voiceRow">
+      <button id="sendVoice" class="vbtn primary">送出到 Email</button>
+      <button id="closeVoice" class="vbtn ghost">關閉</button>
+    </div>
+
+    <div id="voiceHint" class="voiceHint">
+      提示：需使用支援語音辨識的瀏覽器（Chrome/Edge），並允許麥克風權限。
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>
+  // ==========================
+  // MQTT 設定
+  // ==========================
+  const CONNECT_URL   = "wss://broker.emqx.io:8084/mqtt";
+  const STATUS_TOPIC  = "JJ/LAB/status";
+  const MARQ_TOPIC    = "JJ/LAB/marquee";
+
+  const $ = (id) => document.getElementById(id);
+
+  function setNet(ok, text){
+    $("netDot").className = "dot " + (ok ? "ok" : "bad");
+    $("netText").textContent = text;
+  }
+
+  function nowStr(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const da = String(d.getDate()).padStart(2,"0");
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mm = String(d.getMinutes()).padStart(2,"0");
+    const ss = String(d.getSeconds()).padStart(2,"0");
+    return `${y}-${m}-${da} ${hh}:${mm}:${ss}`;
+  }
+
+  function setStatus(code, text, level){
+    $("statusCode").textContent = (code || "unknown").toUpperCase();
+    $("statusText").textContent = text || "等待更新";
+    $("lastUpdate").textContent = nowStr();
+    $("statusPill").className = "pill " + (level || "gray");
+  }
+
+  // ✅ 預設狀態固定為「上課中」
+  setStatus("class","上課中","busy");
+
+  function parseStatusPayload(payload){
+    const raw = (payload || "").trim();
+    const low = raw.toLowerCase();
+
+    const customPrefixes = ["custom:", "自訂:", "自定:"];
+    for (const pre of customPrefixes){
+      if (low.startsWith(pre)){
+        const customText = raw.slice(pre.length).trim() || "自訂狀態";
+        return { code:"custom", text: customText, level:"cool" };
+      }
+    }
+
+    const map = new Map([
+      ["out","out"], ["外出","out"], ["外出中","out"],
+      ["class","class"], ["上課","class"], ["上課中","class"], ["授課","class"], ["教學中","class"],
+      ["experiment","experiment"], ["實驗","experiment"], ["實驗中","experiment"],
+      ["meeting","meeting"], ["開會","meeting"], ["開會中","meeting"], ["會議","meeting"], ["會議中","meeting"],
+      ["break","break"], ["休息","break"], ["休息中","break"],
+      ["vacation","vacation"], ["休假","vacation"], ["休假中","vacation"], ["請假","vacation"], ["請假中","vacation"]
+    ]);
+
+    const key = map.get(low) || map.get(raw) || null;
+
+    switch(key){
+      case "out":        return { code:"out",        text:"外出中", level:"warn" };
+      case "class":      return { code:"class",      text:"上課中", level:"busy" };
+      case "experiment": return { code:"experiment", text:"實驗中", level:"ok" };
+      case "meeting":    return { code:"meeting",    text:"開會中", level:"busy" };
+      case "break":      return { code:"break",      text:"休息中", level:"cool" };
+      case "vacation":   return { code:"vacation",   text:"休假中", level:"vac" };
+      default:           return { code:"msg", text: raw || "等待更新", level:"gray" };
+    }
+  }
+
+  // ==========================
+  // Marquee engine
+  // ==========================
+  let marqueeSpeed = 90;
+  let marqueePaused = false;
+
+  const viewport = $("marqueeViewport");
+  const track = $("marqueeTrack");
+
+  let x = 0;
+  let lastT = performance.now();
+
+  function setMarquee(text){
+    const t = (text || "").trim() || "（空白公告）";
+    track.textContent = t;
+    x = viewport.clientWidth;
+    lastT = performance.now();
+  }
+
+  function setMarqueeSpeed(pxPerSec){
+    const v = Number(pxPerSec);
+    if (!Number.isFinite(v)) return;
+    marqueeSpeed = Math.max(20, Math.min(260, v));
+  }
+
+  function marqueeLoop(t){
+    const dt = (t - lastT) / 1000;
+    lastT = t;
+
+    if (!marqueePaused){
+      x -= marqueeSpeed * dt;
+      const w = track.scrollWidth;
+      if (x < -w) x = viewport.clientWidth;
+      track.style.transform = `translateX(${x}px)`;
+    }
+    requestAnimationFrame(marqueeLoop);
+  }
+  requestAnimationFrame(marqueeLoop);
+
+  function parseMarqueePayload(payload){
+    const raw = (payload || "").trim();
+    const low = raw.toLowerCase();
+
+    if (low === "pause" || raw === "暫停"){ marqueePaused = true; return; }
+    if (low === "play" || raw === "播放" || raw === "開始"){ marqueePaused = false; return; }
+
+    const m = raw.match(/^speed\s*=\s*(\d+)\s*;\s*(.*)$/i);
+    if (m){
+      setMarqueeSpeed(parseInt(m[1], 10));
+      setMarquee(m[2]);
+      return;
+    }
+    setMarquee(raw);
+  }
+
+  // Clock
+  function tickClock(){
+    const d = new Date();
+    $("clock").textContent =
+      String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  // Defaults
+  setNet(false, "MQTT 未連線");
+  setMarquee("等待公告…（可由 MQTT 設定）");
+
+  // MQTT
+  const client = mqtt.connect(CONNECT_URL, {
+    clientId: "hiot-board-" + Math.random().toString(16).slice(2),
+    clean: true,
+    keepalive: 30,
+    reconnectPeriod: 2000,
+    connectTimeout: 10000
+  });
+
+  client.on("connect", () => {
+    setNet(true, "MQTT 已連線");
+    client.subscribe([STATUS_TOPIC, MARQ_TOPIC], { qos: 0 }, (err) => {
+      if (err) setNet(false, "訂閱失敗：" + err.message);
+    });
+  });
+
+  client.on("reconnect", () => setNet(false, "重新連線中…"));
+  client.on("offline", () => setNet(false, "離線（offline）"));
+  client.on("close", () => setNet(false, "連線已關閉"));
+  client.on("error", (e) => setNet(false, "錯誤：" + (e?.message || e)));
+
+  client.on("message", (topic, message) => {
+    const payload = message.toString("utf-8");
+
+    if (topic === STATUS_TOPIC){
+      const st = parseStatusPayload(payload);
+      setStatus(st.code, st.text, st.level);
+      return;
+    }
+
+    if (topic === MARQ_TOPIC){
+      parseMarqueePayload(payload);
+      return;
+    }
+  });
+
+  window.addEventListener("resize", () => { x = viewport.clientWidth; });
+
+  // =======================
+  // 語音留言 → Apps Script 寄信
+  // =======================
+  const MAIL_ENDPOINT = "https://script.google.com/macros/s/AKfycbwHM5AROpfJpd2DCIKBFjYQ_w89oiwaohsMum9_-Kuhgb1ZuMN9aFhks2EWm8wvORCo/exec";
+
+  // ⚠️ 這串必須與你 Apps Script (Code.gs) 的 SECRET 一致
+  const MAIL_SECRET   = "dfdfshfddsfhsdhsdsdsdshfdhgfdsG";
+
+  const voiceBtn   = document.getElementById("voiceBtn");
+  const voiceModal = document.getElementById("voiceModal");
+  const startRec   = document.getElementById("startRec");
+  const stopRec    = document.getElementById("stopRec");
+  const clearRec   = document.getElementById("clearRec");
+  const closeVoice = document.getElementById("closeVoice");
+  const sendVoice  = document.getElementById("sendVoice");
+  const voiceText  = document.getElementById("voiceText");
+  const voiceHint  = document.getElementById("voiceHint");
+
+  function openVoice(){
+    voiceModal.classList.add("show");
+    voiceModal.setAttribute("aria-hidden","false");
+  }
+  function closeVoiceModal(){
+    voiceModal.classList.remove("show");
+    voiceModal.setAttribute("aria-hidden","true");
+  }
+
+  voiceBtn.addEventListener("click", openVoice);
+  closeVoice.addEventListener("click", closeVoiceModal);
+  voiceModal.addEventListener("click", (e) => { if(e.target === voiceModal) closeVoiceModal(); });
+  clearRec.addEventListener("click", () => { voiceText.value = ""; });
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null;
+
+  if (!SpeechRecognition) {
+    voiceHint.textContent = "此瀏覽器不支援語音辨識（建議 Chrome/Edge）。你仍可手動輸入文字後送出。";
+    startRec.disabled = true;
+  } else {
+    rec = new SpeechRecognition();
+    rec.lang = "zh-TW";          // 需要可改成 en-US
+    rec.interimResults = true;
+    rec.continuous = true;
+
+    let finalText = "";
+
+    rec.onstart = () => {
+      voiceHint.textContent = "錄音中…請開始說話（可中英文混用）。";
+      startRec.disabled = true;
+      stopRec.disabled = false;
+    };
+
+    rec.onerror = (e) => {
+      voiceHint.textContent = "語音辨識錯誤：" + (e.error || "unknown");
+      startRec.disabled = false;
+      stopRec.disabled = true;
+    };
+
+    rec.onend = () => {
+      startRec.disabled = false;
+      stopRec.disabled = true;
+      voiceHint.textContent = "已停止錄音。你可編輯文字後送出。";
+    };
+
+    rec.onresult = (event) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const txt = event.results[i][0].transcript;
+        if (event.results[i].isFinal) finalText += txt + " ";
+        else interim += txt;
+      }
+      voiceText.value = (finalText + interim).trim();
+    };
+
+    startRec.addEventListener("click", () => {
+      try {
+        finalText = voiceText.value ? (voiceText.value.trim() + " ") : "";
+        rec.start();
+      } catch (err) {
+        console.warn(err);
+      }
+    });
+
+    stopRec.addEventListener("click", () => {
+      try { rec.stop(); } catch(e) {}
+    });
+  }
+
+  sendVoice.addEventListener("click", async () => {
+    const text = (voiceText.value || "").trim();
+    if (!text) {
+      voiceHint.textContent = "內容是空的，請先說話或輸入文字。";
+      return;
+    }
+    if (!MAIL_SECRET || MAIL_SECRET.includes("CHANGE_ME")) {
+      voiceHint.textContent = "尚未設定 MAIL_SECRET（需與 Apps Script 的 SECRET 一致）。";
+      return;
+    }
+
+    sendVoice.disabled = true;
+    voiceHint.textContent = "送出中…";
+
+    try {
+      const payload = {
+        secret: MAIL_SECRET,
+        text,
+        sender: "HIoT Board Voice",
+        page: location.href,
+        ts: new Date().toISOString()
+      };
+
+      const resp = await fetch(MAIL_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      if (data && data.ok) {
+        voiceHint.textContent = "✅ 已寄出到 jj@tmu.edu.tw";
+      } else {
+        voiceHint.textContent = "❌ 寄送失敗：" + (data.error || "unknown");
+      }
+    } catch (err) {
+      voiceHint.textContent = "❌ 送出錯誤：" + String(err);
+    } finally {
+      sendVoice.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
