@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>實驗室電子布告牌</title>
+  <title>HIoT 實驗室電子布告牌</title>
   <style>
     :root{
       --bg:#0b1220;
@@ -51,9 +51,9 @@
     }
 
     .labname{
-      font-size:40px;
-      font-weight:800;
-      letter-spacing:.5px;
+      font-size:44px;
+      font-weight:900;
+      letter-spacing:.6px;
       line-height:1.1;
     }
 
@@ -65,13 +65,13 @@
 
     .right{
       text-align:right;
-      min-width:280px;
+      min-width:260px;
     }
 
     .clock{
       font-variant-numeric: tabular-nums;
       font-size:28px;
-      font-weight:700;
+      font-weight:800;
     }
     .net{
       margin-top:8px;
@@ -89,10 +89,11 @@
     .dot.ok{ background:var(--ok); box-shadow:0 0 0 4px rgba(34,197,94,.18); }
     .dot.bad{ background:var(--busy); box-shadow:0 0 0 4px rgba(239,68,68,.18); }
 
+    /* ✅ 左大右小：照片縮小一點 */
     main{
       padding:26px 32px 34px;
       display:grid;
-      grid-template-columns: 1.2fr .8fr;
+      grid-template-columns: 1.55fr .45fr; /* 原 1.2 / .8 → 讓右邊變窄 */
       gap:18px;
       align-items:stretch;
     }
@@ -105,7 +106,7 @@
       display:flex;
       flex-direction:column;
       gap:14px;
-      min-height:260px;
+      min-height:320px;
     }
 
     .label{
@@ -118,13 +119,14 @@
       display:flex;
       align-items:center;
       gap:14px;
+      justify-content:center; /* ✅ 左右置中 */
     }
 
     .badge{
       padding:10px 14px;
       border-radius:999px;
-      font-weight:800;
-      letter-spacing:.4px;
+      font-weight:900;
+      letter-spacing:.5px;
       font-size:14px;
       border:1px solid rgba(255,255,255,.12);
       background: rgba(255,255,255,.06);
@@ -143,24 +145,46 @@
     .pill.gray{ background:var(--gray); box-shadow:0 0 0 6px rgba(148,163,184,.12); }
     .pill.vac{ background:var(--vac); box-shadow:0 0 0 6px rgba(167,139,250,.16); }
 
-    /* 狀態字型加大 */
+    /* ✅ 狀態字型再加大 + 左右置中 + 上下置中 */
     .statusText{
-      font-size:72px;
-      font-weight:900;
+      font-size:92px;         /* 原 72 → 92 */
+      font-weight:1000;
       line-height:1.02;
       letter-spacing:1px;
+      text-align:center;      /* ✅ 左右置中 */
+      margin:0;
     }
 
-    /* ✅ 右側改成照片區 */
+    .statusBody{
+      flex:1;                 /* ✅ 讓內容吃滿高度 */
+      display:flex;
+      flex-direction:column;
+      justify-content:center; /* ✅ 上下置中 */
+      gap:18px;
+    }
+
+    /* ✅ 右側：照片卡（縮小後仍好看） */
     .photoCard{
       background: rgba(18,27,46,.60);
       border:1px solid rgba(255,255,255,.10);
       border-radius:24px;
-      padding:16px;
+      padding:14px;
       display:flex;
       flex-direction:column;
-      gap:12px;
+      gap:10px;
       overflow:hidden;
+    }
+
+    .photoCaption{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      color:var(--text);
+      font-weight:900;
+      font-size:20px; /* ✅ 字大一點 */
+      letter-spacing:.5px;
+      padding:2px 4px 2px;
+      text-align:center;
     }
 
     .photoWrap{
@@ -169,7 +193,7 @@
       border:1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.04);
       height:100%;
-      min-height:320px;
+      min-height:260px;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -178,18 +202,8 @@
     .photoWrap img{
       width:100%;
       height:100%;
-      object-fit:cover; /* ✅ 自動裁切填滿 */
+      object-fit:cover;
       display:block;
-    }
-
-    .photoCaption{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:10px;
-      color:var(--muted);
-      font-size:14px;
-      padding:0 4px 2px;
     }
 
     footer{
@@ -203,9 +217,9 @@
 
     @media (max-width: 900px){
       main{ grid-template-columns: 1fr; }
-      .statusText{ font-size:54px; }
-      .labname{ font-size:32px; }
-      .photoWrap{ min-height:260px; }
+      .statusText{ font-size:64px; }
+      .labname{ font-size:34px; }
+      .photoWrap{ min-height:240px; }
     }
   </style>
 </head>
@@ -214,7 +228,8 @@
   <div class="board">
     <header>
       <div>
-        <div class="labname" id="labName">醫療 AI 與健康 IoT 實驗室</div>
+        <!-- ✅ 主標題改名 -->
+        <div class="labname" id="labName">健康物聯網 HIoT 實驗室</div>
         <div class="sub">Laboratory Status Board (MQTT over WSS)</div>
       </div>
       <div class="right">
@@ -229,36 +244,39 @@
     <main>
       <section class="statusCard">
         <div class="label">目前狀態</div>
-        <div class="statusLine">
-          <span class="pill gray" id="statusPill"></span>
-          <span class="badge" id="statusCode">UNKNOWN</span>
+
+        <!-- ✅ 用 statusBody 做上下置中 -->
+        <div class="statusBody">
+          <div class="statusLine">
+            <span class="pill gray" id="statusPill"></span>
+            <span class="badge" id="statusCode">UNKNOWN</span>
+          </div>
+
+          <div class="statusText" id="statusText">等待更新</div>
         </div>
-        <div class="statusText" id="statusText">等待更新</div>
       </section>
 
-      <!-- ✅ 右側欄位：照片 -->
       <aside class="photoCard">
-        <div class="photoCaption">
-          <span id="photoTitle">Prof. Jian</span>
-          <span>最後更新：<b id="lastUpdate" style="color:var(--text);font-weight:700;">—</b></span>
-        </div>
+        <!-- ✅ 改為「簡文山 教授」+ 字變大 -->
+        <div class="photoCaption">簡文山 教授</div>
         <div class="photoWrap">
-          <!-- 你 repo 同資料夾放 jj.jpg -->
-          <img src="jj.jpg" alt="jj" onerror="this.alt='找不到 jj.jpg，請確認與 board.html 同資料夾'; this.style.objectFit='contain';">
+          <!-- board.html 同資料夾放 jj.jpg -->
+          <img src="jj.jpg" alt="jj"
+               onerror="this.alt='找不到 jj.jpg，請確認與 board.html 同資料夾'; this.style.objectFit='contain';">
         </div>
       </aside>
     </main>
 
     <footer>
       <div>顯示頁面：建議全螢幕（F11）</div>
-      <div>Topic：<span id="cfgTopic">JJ/LAB/status</span></div>
+      <div>最後更新：<span id="lastUpdate">—</span></div>
     </footer>
   </div>
 
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script>
     const CONFIG = {
-      labName: "醫療 AI 與健康 IoT 實驗室",
+      labName: "健康物聯網 HIoT 實驗室",
       wsUrl: "wss://broker.emqx.io:8084/mqtt",
       topic: "JJ/LAB/status",
       clientId: "lab-board-" + Math.random().toString(16).slice(2),
@@ -293,7 +311,7 @@
       $("statusPill").className = "pill " + lv;
     }
 
-    /* ✅ 中英都吃：英文 key + 中文同義詞 */
+    // ✅ 中英都吃：英文 key + 中文同義詞
     function parsePayload(payload){
       const raw = (payload || "").trim();
       const p = raw.toLowerCase();
@@ -301,16 +319,15 @@
       // custom:xxx / 自訂:xxx / 自定:xxx
       const customPrefixes = ["custom:", "自訂:", "自定:"];
       for (const pre of customPrefixes){
-        if (raw.startsWith(pre) || p.startsWith(pre)){
+        if (p.startsWith(pre)){
           const customText = raw.slice(pre.length).trim() || "自訂狀態";
           return { code:"custom", text: customText, level:"cool" };
         }
       }
 
-      // 把常見中文直接映射成標準代碼
       const map = new Map([
         // out
-        ["out","out"], ["外出","out"], ["外出中","out"], ["外出ing","out"],
+        ["out","out"], ["外出","out"], ["外出中","out"],
 
         // class
         ["class","class"], ["上課","class"], ["上課中","class"], ["授課","class"], ["教學中","class"],
@@ -338,14 +355,12 @@
         case "break":      return { code:"break",      text:"休息中", level:"cool" };
         case "vacation":   return { code:"vacation",   text:"休假中", level:"vac" };
         default:
-          // 任何未知字串就直接顯示（例如直接丟「訪客來訪」也會顯示）
           return { code:"msg", text: raw || "等待更新", level:"gray" };
       }
     }
 
     // Init UI
     $("labName").textContent = CONFIG.labName;
-    $("cfgTopic").textContent = CONFIG.topic;
 
     setStatus("unknown","等待更新","gray");
     setNet(false,"MQTT 未連線");
