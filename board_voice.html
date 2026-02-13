@@ -272,8 +272,8 @@
 
   /* ===== 語音留言 UI ===== */
   .voiceBtn{
-    position: absolute;        /* ✅ 不再 fixed，改貼在左邊欄位內 */
-    left: 18px;
+    position: absolute;        /* 以左邊卡片為定位基準 */
+    right: 18px;              /* ✅ 右下角 */
     bottom: 18px;
     z-index: 10;
 
@@ -288,7 +288,9 @@
     box-shadow: 0 18px 50px rgba(0,0,0,.45);
     backdrop-filter: blur(8px);
   }
-.voiceBtn:hover{ transform: translateY(-1px); }
+
+
+
 
   .voiceBtn:hover{ transform: translateY(-1px); }
 
@@ -725,7 +727,7 @@ sendVoice.addEventListener("click", async () => {
    Init UI + MQTT
 ========================================= */
 // 預設狀態：上課中
-setStatus("class","上課中","busy");
+setStatus("out","外出中","warn");
 setNet(false, "MQTT 未連線");
 setMarquee("等待公告…（可由 MQTT 設定）");
 
