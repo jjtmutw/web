@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>實驗室電子布告牌</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#121b2e;
+      --text:#e8eefc;
+      --muted:#a9b6d6;
+      --accent:#60a5fa;
+
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --busy:#ef4444;
+      --cool:#38bdf8;
+      --gray:#94a3b8;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif;
+      background: radial-gradient(1200px 700px at 20% 10%, rgba(96,165,250,.15), transparent 60%),
+                  radial-gradient(1000px 600px at 80% 30%, rgba(34,197,94,.10), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:32px;
+    }
+
+    .board{
+      width:min(1200px, 100%);
+      border-radius:28px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 20px 70px rgba(0,0,0,.45);
+      overflow:hidden;
+    }
+
+    header{
+      padding:28px 32px 18px;
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      align-items:flex-end;
+    }
+
+    .labname{
+      font-size:40px;
+      font-weight:800;
+      letter-spacing:.5px;
+      line-height:1.1;
+    }
+
+    .sub{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:16px;
+    }
+
+    .right{
+      text-align:right;
+      min-width:280px;
+    }
+
+    .clock{
+      font-variant-numeric: tabular-nums;
+      font-size:28px;
+      font-weight:700;
+    }
+    .net{
+      margin-top:8px;
+      font-size:14px;
+      color:var(--muted);
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:999px;background:var(--gray);
+      box-shadow:0 0 0 4px rgba(148,163,184,.15);
+    }
+    .dot.ok{ background:var(--ok); box-shadow:0 0 0 4px rgba(34,197,94,.18); }
+    .dot.bad{ background:var(--busy); box-shadow:0 0 0 4px rgba(239,68,68,.18); }
+
+    main{
+      padding:26px 32px 34px;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:18px;
+    }
+
+    .statusCard{
+      background: rgba(18,27,46,.78);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:24px;
+      padding:28px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      min-height:260px;
+    }
+
+    .label{
+      color:var(--muted);
+      font-size:15px;
+      letter-spacing:.4px;
+    }
+
+    .statusLine{
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+
+    .badge{
+      padding:10px 14px;
+      border-radius:999px;
+      font-weight:800;
+      letter-spacing:.4px;
+      font-size:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+    }
+
+    .pill{
+      width:14px;height:14px;border-radius:999px;
+      background:var(--gray);
+      box-shadow:0 0 0 6px rgba(148,163,184,.12);
+    }
+    .pill.ok{ background:var(--ok); box-shadow:0 0 0 6px rgba(34,197,94,.14); }
+    .pill.warn{ background:var(--warn); box-shadow:0 0 0 6px rgba(245,158,11,.14); }
+    .pill.busy{ background:var(--busy); box-shadow:0 0 0 6px rgba(239,68,68,.14); }
+    .pill.cool{ background:var(--cool); box-shadow:0 0 0 6px rgba(56,189,248,.14); }
+
+    .statusText{
+      font-size:56px;
+      font-weight:900;
+      line-height:1.05;
+      letter-spacing:1px;
+    }
+
+    .hint{
+      color:var(--muted);
+      font-size:16px;
+      line-height:1.6;
+    }
+
+    .side{
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+
+    .box{
+      background: rgba(18,27,46,.60);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:24px;
+      padding:18px 18px;
+    }
+
+    .row{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      padding:10px 6px;
+      border-bottom:1px dashed rgba(255,255,255,.10);
+      color:var(--muted);
+      font-size:14px;
+    }
+    .row:last-child{ border-bottom:none; }
+    .row b{ color:var(--text); font-weight:700; }
+
+    footer{
+      padding:14px 32px 18px;
+      color:var(--muted);
+      font-size:13px;
+      display:flex;
+      justify-content:space-between;
+      border-top:1px solid rgba(255,255,255,.08);
+    }
+
+    @media (max-width: 900px){
+      main{ grid-template-columns: 1fr; }
+      .right{ min-width:auto; }
+      .statusText{ font-size:44px; }
+      .labname{ font-size:32px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="board">
+    <header>
+      <div>
+        <div class="labname" id="labName">醫療 AI 與健康 IoT 實驗室</div>
+        <div class="sub">Laboratory Status Board (MQTT)</div>
+      </div>
+      <div class="right">
+        <div class="clock" id="clock">--:--</div>
+        <div class="net">
+          <span class="dot" id="netDot"></span>
+          <span id="netText">MQTT 未連線</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="statusCard">
+        <div class="label">目前狀態</div>
+        <div class="statusLine">
+          <span class="pill" id="statusPill"></span>
+          <span class="badge" id="statusCode">UNKNOWN</span>
+        </div>
+        <div class="statusText" id="statusText">等待更新</div>
+        <div class="hint" id="statusHint">
+          由 MQTT 訊息控制：<b>JJ/LAB/status</b><br>
+          範例 payload：out / class / experiment / meeting / break / custom:臨時離開
+        </div>
+      </section>
+
+      <aside class="side">
+        <div class="box">
+          <div class="label" style="margin-bottom:8px;">MQTT 連線設定（請改成你的）</div>
+          <div class="row"><span>WebSocket URL</span><b id="cfgUrl">ws://broker.emqx.io:8083/mqtt</b></div>
+          <div class="row"><span>Topic</span><b id="cfgTopic">JJ/LAB/status</b></div>
+          <div class="row"><span>Client ID</span><b id="cfgClient">lab-board-001</b></div>
+        </div>
+
+        <div class="box">
+          <div class="label" style="margin-bottom:8px;">快速狀態對照</div>
+          <div class="row"><span>out</span><b>外出中</b></div>
+          <div class="row"><span>class</span><b>上課中</b></div>
+          <div class="row"><span>experiment</span><b>實驗中</b></div>
+          <div class="row"><span>meeting</span><b>開會中</b></div>
+          <div class="row"><span>break</span><b>休息中</b></div>
+          <div class="row"><span>custom:xxx</span><b>自訂文字</b></div>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      <div>顯示頁面：建議全螢幕（F11）</div>
+      <div>最後更新：<span id="lastUpdate">—</span></div>
+    </footer>
+  </div>
+
+  <!-- MQTT.js (Browser) -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script>
+    // ==============================
+    // 你需要改的只有這一段
+    // ==============================
+    const CONFIG = {
+      labName: "醫療 AI 與健康 IoT 實驗室",
+      wsUrl: "ws://127.0.0.1:8083/mqtt",   // 改成你的 MQTT WebSocket 位址
+      topic: "JJ/LAB/status",
+      clientId: "lab-board-001",
+      username: "",   // 若 broker 需要帳密就填
+      password: ""
+    };
+
+    // ==============================
+    // UI helpers
+    // ==============================
+    const $ = (id) => document.getElementById(id);
+    $("labName").textContent = CONFIG.labName;
+    $("cfgUrl").textContent = CONFIG.wsUrl;
+    $("cfgTopic").textContent = CONFIG.topic;
+    $("cfgClient").textContent = CONFIG.clientId;
+
+    function setNet(connected, text){
+      $("netDot").className = "dot " + (connected ? "ok" : "bad");
+      $("netText").textContent = text;
+    }
+
+    function nowStr(){
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const da = String(d.getDate()).padStart(2,"0");
+      const hh = String(d.getHours()).padStart(2,"0");
+      const mm = String(d.getMinutes()).padStart(2,"0");
+      const ss = String(d.getSeconds()).padStart(2,"0");
+      return `${y}-${m}-${da} ${hh}:${mm}:${ss}`;
+    }
+
+    function setStatus(code, text, level){
+      $("statusCode").textContent = code.toUpperCase();
+      $("statusText").textContent = text;
+      $("lastUpdate").textContent = nowStr();
+
+      // level: ok / warn / busy / cool / gray
+      $("statusPill").className = "pill " + (level || "");
+    }
+
+    function parsePayload(payload){
+      const p = (payload || "").trim();
+
+      // custom:xxx
+      if(p.toLowerCase().startsWith("custom:")){
+        const customText = p.slice(7).trim() || "自訂狀態";
+        return { code:"custom", text: customText, level:"cool" };
+      }
+
+      switch(p.toLowerCase()){
+        case "out":        return { code:"out",        text:"外出中", level:"warn" };
+        case "class":      return { code:"class",      text:"上課中", level:"busy" };
+        case "experiment": return { code:"experiment", text:"實驗中", level:"ok" };
+        case "meeting":    return { code:"meeting",    text:"開會中", level:"busy" };
+        case "break":      return { code:"break",      text:"休息中", level:"cool" };
+        default:
+          // 任何未知字串都直接顯示
+          return { code:"msg", text: p || "等待更新", level:"gray" };
+      }
+    }
+
+    // Clock
+    function tickClock(){
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2,"0");
+      const mm = String(d.getMinutes()).padStart(2,"0");
+      $("clock").textContent = `${hh}:${mm}`;
+    }
+    tickClock();
+    setInterval(tickClock, 1000);
+
+    // Default status
+    setStatus("unknown","等待更新","gray");
+    setNet(false,"MQTT 未連線");
+
+    // ==============================
+    // MQTT connect
+    // ==============================
+    const options = {
+      clientId: CONFIG.clientId,
+      keepalive: 30,
+      reconnectPeriod: 2000,
+      connectTimeout: 10_000,
+      clean: true
+    };
+    if(CONFIG.username) options.username = CONFIG.username;
+    if(CONFIG.password) options.password = CONFIG.password;
+
+    const client = mqtt.connect(CONFIG.wsUrl, options);
+
+    client.on("connect", () => {
+      setNet(true, "MQTT 已連線");
+      client.subscribe(CONFIG.topic, { qos: 0 }, (err) => {
+        if(err){
+          setNet(false, "訂閱失敗：" + err.message);
+        }
+      });
+    });
+
+    client.on("reconnect", () => setNet(false, "重新連線中…"));
+    client.on("close", () => setNet(false, "MQTT 連線關閉"));
+    client.on("error", (e) => setNet(false, "MQTT 錯誤：" + (e?.message || e)));
+
+    client.on("message", (topic, message) => {
+      const payload = message.toString("utf-8");
+      const st = parsePayload(payload);
+      setStatus(st.code, st.text, st.level);
+    });
+  </script>
+</body>
+</html>
