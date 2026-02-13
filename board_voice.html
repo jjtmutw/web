@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>HIoT 實驗室電子布告牌（最終版）</title>
+<title>HIoT 實驗室電子布告牌（最終版・RWD精簡高度）</title>
 
 <style>
   :root{
@@ -31,52 +31,52 @@
     display:flex;
     justify-content:center;
     align-items:center;
-    padding: clamp(10px, 3vw, 24px);
+    padding: clamp(10px, 3vw, 20px);
   }
 
   .board{
     width:min(1200px, 100%);
-    border-radius:22px;
+    border-radius:20px;
     overflow:hidden;
-    box-shadow:0 20px 70px rgba(0,0,0,.50);
+    box-shadow:0 16px 56px rgba(0,0,0,.50);
     border:1px solid rgba(255,255,255,.10);
     background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
   }
 
-  /* White Banner */
+  /* White Banner (height reduced) */
   .banner{
     background:#fff;
-    height:86px;
+    height:72px;
     display:flex;
     align-items:center;
     justify-content:space-between;
-    padding:10px 34px;
-    gap:18px;
+    padding:8px 26px;
+    gap:14px;
   }
   .banner img{
-    height:60px;
+    height:52px;
     object-fit:contain;
     display:block;
   }
 
   header{
-    padding:18px 28px 12px;
+    padding:14px 22px 10px;
     display:flex;
     justify-content:space-between;
     align-items:flex-end;
-    gap:18px;
+    gap:14px;
   }
 
   .labname{
-    font-size: clamp(26px, 4.5vw, 44px);
+    font-size: clamp(24px, 4.2vw, 40px);
     font-weight:900;
     letter-spacing:.6px;
     line-height:1.1;
   }
   .sub{
-    margin-top:8px;
+    margin-top:6px;
     color:var(--muted);
-    font-size:15px;
+    font-size:14px;
   }
 
   .rightTop{
@@ -85,17 +85,17 @@
   }
   .clock{
     font-variant-numeric:tabular-nums;
-    font-size:30px;
+    font-size:26px;
     font-weight:900;
   }
   .net{
-    margin-top:8px;
+    margin-top:6px;
     display:flex;
     align-items:center;
     justify-content:flex-end;
     gap:10px;
     color:var(--muted);
-    font-size:14px;
+    font-size:13px;
   }
   .dot{
     width:10px;height:10px;border-radius:999px;background:var(--gray);
@@ -104,24 +104,25 @@
   .dot.ok{ background:var(--ok); box-shadow:0 0 0 4px rgba(34,197,94,.18); }
   .dot.bad{ background:var(--busy); box-shadow:0 0 0 4px rgba(239,68,68,.18); }
 
-  /* Main layout (不固定3:1；桌機兩欄、平板手機單欄) */
+  /* Main layout: keep ~3:1 on desktop */
   main{
-    padding:18px 28px 16px;
+    padding:14px 22px 12px;
     display:grid;
-    grid-template-columns: 1.4fr 1fr; /* ✅ 彈性比例 */
-    gap:16px;
+    grid-template-columns: 3fr 1fr;   /* ✅ 盡量維持三比一 */
+    gap:12px;
+    align-items:stretch;
   }
 
-  /* Left: Status */
+  /* Left: Status (reduced height) */
   .statusCard{
-    position: relative; /* ✅ for voice button */
+    position: relative;
     background: rgba(18,27,46,.82);
     border:1px solid rgba(255,255,255,.10);
-    border-radius:20px;
-    padding:22px;
+    border-radius:18px;
+    padding:16px;
     display:flex;
     flex-direction:column;
-    min-height:360px;
+    min-height:260px;   /* ✅ 窄一點 */
   }
 
   .statusBody{
@@ -130,42 +131,42 @@
     flex-direction:column;
     justify-content:center;
     align-items:center;
-    gap:22px;
-    padding-bottom: 58px; /* ✅ 留空給右下角 🎤 */
+    gap:14px;
+    padding-bottom: 54px; /* 留給 🎤 */
   }
 
   .statusLine{
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:12px;
+    gap:10px;
   }
 
   .pill{
-    width:14px;height:14px;border-radius:999px;
+    width:12px;height:12px;border-radius:999px;
     background:var(--gray);
-    box-shadow:0 0 0 6px rgba(148,163,184,.12);
+    box-shadow:0 0 0 5px rgba(148,163,184,.12);
   }
-  .pill.ok{ background:var(--ok); box-shadow:0 0 0 6px rgba(34,197,94,.14); }
-  .pill.warn{ background:var(--warn); box-shadow:0 0 0 6px rgba(245,158,11,.14); }
-  .pill.busy{ background:var(--busy); box-shadow:0 0 0 6px rgba(239,68,68,.14); }
-  .pill.cool{ background:var(--cool); box-shadow:0 0 0 6px rgba(56,189,248,.14); }
-  .pill.gray{ background:var(--gray); box-shadow:0 0 0 6px rgba(148,163,184,.12); }
-  .pill.vac{ background:var(--vac); box-shadow:0 0 0 6px rgba(167,139,250,.16); }
+  .pill.ok{ background:var(--ok); box-shadow:0 0 0 5px rgba(34,197,94,.14); }
+  .pill.warn{ background:var(--warn); box-shadow:0 0 0 5px rgba(245,158,11,.14); }
+  .pill.busy{ background:var(--busy); box-shadow:0 0 0 5px rgba(239,68,68,.14); }
+  .pill.cool{ background:var(--cool); box-shadow:0 0 0 5px rgba(56,189,248,.14); }
+  .pill.gray{ background:var(--gray); box-shadow:0 0 0 5px rgba(148,163,184,.12); }
+  .pill.vac{ background:var(--vac); box-shadow:0 0 0 5px rgba(167,139,250,.16); }
 
   .badge{
-    padding:8px 14px;
+    padding:7px 12px;
     border-radius:999px;
     font-weight:900;
     letter-spacing:.5px;
-    font-size:14px;
+    font-size:13px;
     border:1px solid rgba(255,255,255,.12);
     background: rgba(255,255,255,.06);
     color:var(--text);
   }
 
   .statusText{
-    font-size: clamp(54px, 10vw, 104px);
+    font-size: clamp(44px, 7.8vw, 86px); /* ✅ 比之前矮一些 */
     font-weight:1000;
     letter-spacing:1px;
     line-height:1.02;
@@ -173,30 +174,30 @@
     margin:0;
   }
 
-  /* Right: Photo */
+  /* Right: Photo (smaller) */
   .photoCard{
     background: rgba(18,27,46,.70);
     border:1px solid rgba(255,255,255,.10);
-    border-radius:20px;
-    padding:12px;
+    border-radius:18px;
+    padding:10px;
     display:flex;
     flex-direction:column;
-    gap:10px;
-    min-height:360px;
+    gap:8px;
+    min-height:260px;   /* ✅ 跟左邊差不多高 */
   }
   .photoCaption{
     text-align:center;
-    font-size:24px;
+    font-size:20px;
     font-weight:900;
     letter-spacing:.5px;
   }
   .photoWrap{
     flex:1;
-    border-radius:16px;
+    border-radius:14px;
     overflow:hidden;
     border:1px solid rgba(255,255,255,.10);
     background: rgba(255,255,255,.04);
-    min-height:260px;
+    min-height:160px;  /* ✅ 照片不用那麼大 */
   }
   .photoWrap img{
     width:100%;
@@ -205,22 +206,22 @@
     display:block;
   }
 
-  /* Marquee */
+  /* Marquee (slimmer) */
   .marqueeBar{
-    margin: 0 28px 16px;
-    border-radius:16px;
+    margin: 0 22px 12px;
+    border-radius:14px;
     border:1px solid rgba(255,255,255,.10);
     background: rgba(18,27,46,.70);
     overflow:hidden;
     position:relative;
-    height:56px;
+    height:48px; /* ✅ 窄一點 */
     display:flex;
     align-items:center;
   }
 
   .marqueeLabel{
     flex:0 0 auto;
-    padding:0 16px;
+    padding:0 12px;
     font-weight:900;
     letter-spacing:.6px;
     color:var(--text);
@@ -229,6 +230,7 @@
     display:flex;
     align-items:center;
     background: rgba(255,255,255,.04);
+    font-size:14px;
   }
 
   .marqueeViewport{
@@ -243,42 +245,41 @@
   .marqueeTrack{
     white-space:nowrap;
     will-change: transform;
-    font-size:22px;
+    font-size:18px;
     font-weight:800;
     color:var(--text);
-    padding-left:24px;
+    padding-left:18px;
   }
 
   footer{
-    padding:10px 28px 14px;
+    padding:10px 22px 12px;
     color:var(--muted);
-    font-size:13px;
+    font-size:12px;
     display:flex;
     justify-content:space-between;
     border-top:1px solid rgba(255,255,255,.08);
   }
 
-  /* ===== 🎤 語音留言按鈕：左邊欄位右下角 ===== */
+  /* 🎤 in 左卡右下 */
   .voiceBtn{
     position: absolute;
-    right: 18px;
-    bottom: 18px;
+    right: 14px;
+    bottom: 14px;
     z-index: 10;
-
     border: 1px solid rgba(255,255,255,.18);
-    background: rgba(18,27,46,.90);
+    background: rgba(18,27,46,.92);
     color: var(--text);
-    padding: 14px 16px;
+    padding: 12px 14px;
     border-radius: 999px;
     font-weight: 900;
-    font-size: 16px;
+    font-size: 15px;
     cursor: pointer;
-    box-shadow: 0 18px 50px rgba(0,0,0,.45);
+    box-shadow:0 16px 46px rgba(0,0,0,.45);
     backdrop-filter: blur(8px);
   }
   .voiceBtn:hover{ transform: translateY(-1px); }
 
-  /* ===== 語音留言 Modal ===== */
+  /* Modal */
   .voiceModal{
     position: fixed;
     inset: 0;
@@ -287,22 +288,22 @@
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    padding: 18px;
+    padding: 16px;
   }
   .voiceModal.show{ display:flex; }
 
   .voicePanel{
-    width: min(760px, 96vw);
+    width: min(720px, 96vw);
     background: rgba(18,27,46,.96);
     border: 1px solid rgba(255,255,255,.12);
     border-radius: 18px;
-    padding: 16px;
+    padding: 14px;
     box-shadow: 0 24px 80px rgba(0,0,0,.6);
   }
   .voiceTitle{
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 900;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     letter-spacing: .4px;
   }
   .voiceRow{
@@ -315,7 +316,7 @@
     border: 1px solid rgba(255,255,255,.16);
     background: rgba(255,255,255,.06);
     color: var(--text);
-    padding: 10px 12px;
+    padding: 9px 11px;
     border-radius: 12px;
     font-weight: 900;
     cursor: pointer;
@@ -328,30 +329,28 @@
   .vbtn.ghost{ background: transparent; }
   .voiceText{
     width: 100%;
-    min-height: 180px;
+    min-height: 150px;
     resize: vertical;
     border-radius: 14px;
     border: 1px solid rgba(255,255,255,.12);
     background: rgba(255,255,255,.05);
     color: var(--text);
     padding: 12px;
-    font-size: 16px;
+    font-size: 15px;
     line-height: 1.6;
   }
   .voiceHint{
     margin-top: 6px;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 12px;
   }
 
-  /* =========================
-     RWD：平板 / 手機
-  ========================= */
+  /* RWD: 平板/手機（保持「看起來窄」與不過高） */
   @media (max-width: 900px){
     header{
       flex-direction: column;
       align-items: flex-start;
-      gap: 10px;
+      gap: 8px;
     }
     .rightTop{
       width: 100%;
@@ -362,45 +361,50 @@
       gap: 12px;
     }
     .net{ justify-content:flex-start; }
-    main{ grid-template-columns: 1fr; }
-    .statusCard, .photoCard{ min-height: unset; }
+
+    /* ✅ 仍可先維持兩欄但縮小照片；太窄才改單欄 */
+    main{
+      grid-template-columns: 2.4fr 1fr;
+      gap: 10px;
+    }
+    .statusCard{ min-height: 240px; }
+    .photoCard{ min-height: 240px; }
+    .photoWrap{ min-height: 140px; }
+  }
+
+  @media (max-width: 700px){
+    main{ grid-template-columns: 1fr; } /* ✅ 手機直向改單欄 */
+    .photoWrap{ min-height: 190px; }
   }
 
   @media (max-width: 520px){
     .banner{
-      height: 64px;
-      padding: 8px 14px;
+      height: 58px;
+      padding: 6px 12px;
     }
-    .banner img{ height: 44px; }
+    .banner img{ height: 40px; }
 
-    header{ padding: 14px 16px 10px; }
-    main{ padding: 14px 16px 12px; gap: 12px; }
+    header{ padding: 12px 14px 8px; }
+    main{ padding: 12px 14px 10px; gap: 10px; }
 
     .clock{ font-size: 22px; }
-    .sub{ font-size: 13px; }
+    .sub{ font-size: 12px; }
 
-    .statusCard{ padding: 16px; border-radius: 16px; }
-    .photoCard{ border-radius: 16px; }
-    .photoCaption{ font-size: 20px; }
-    .photoWrap{ min-height: 220px; }
+    .statusCard{ padding: 14px; border-radius: 16px; min-height: 220px; }
+    .photoCard{ border-radius: 16px; min-height: 220px; }
+    .photoCaption{ font-size: 18px; }
 
     .marqueeBar{
-      margin: 0 16px 12px;
-      height: 50px;
+      margin: 0 14px 10px;
+      height: 44px;
       border-radius: 14px;
     }
-    .marqueeLabel{ padding: 0 12px; }
-    .marqueeTrack{ font-size: 16px; }
+    .marqueeTrack{ font-size: 15px; }
 
-    footer{ padding: 10px 16px 12px; }
+    footer{ padding: 10px 14px 12px; }
 
-    .voiceBtn{ padding: 12px 14px; font-size: 15px; right: 14px; bottom: 14px; }
-
-    .voicePanel{
-      max-height: 85vh;
-      overflow: auto;
-    }
-    .voiceText{ min-height: 140px; }
+    .voicePanel{ max-height: 85vh; overflow:auto; }
+    .voiceText{ min-height: 130px; }
   }
 </style>
 </head>
@@ -439,7 +443,6 @@
         <div class="statusText" id="statusText">外出中</div>
       </div>
 
-      <!-- 🎤 放左邊欄位右下角 -->
       <button id="voiceBtn" class="voiceBtn" title="語音留言">🎤 語音留言</button>
     </section>
 
@@ -499,10 +502,7 @@ const CONNECT_URL   = "wss://broker.emqx.io:8084/mqtt";
 const STATUS_TOPIC  = "JJ/LAB/status";
 const MARQ_TOPIC    = "JJ/LAB/marquee";
 
-// Apps Script Web App URL（你提供的）
 const MAIL_ENDPOINT = "https://script.google.com/macros/s/AKfycbwHM5AROpfJpd2DCIKBFjYQ_w89oiwaohsMum9_-Kuhgb1ZuMN9aFhks2EWm8wvORCo/exec";
-
-// ⚠️ 必須與你的 Apps Script Code.gs 的 SECRET 完全一致
 const MAIL_SECRET   = "dfdfshfddsfhsdhsdsdsdshfdhgfdsG";
 
 /* ==========================
@@ -534,13 +534,12 @@ function setStatus(code, text, level){
 }
 
 /* ==========================
-   Status parsing (中/英都吃)
+   Status parsing
 ========================== */
 function parseStatusPayload(payload){
   const raw = (payload || "").trim();
   const low = raw.toLowerCase();
 
-  // custom:xxxx / 自訂:xxxx
   const customPrefixes = ["custom:", "自訂:", "自定:"];
   for (const pre of customPrefixes){
     if (low.startsWith(pre)){
@@ -626,7 +625,7 @@ function parseMarqueePayload(payload){
 }
 
 /* ==========================
-   Voice UI + Speech Recognition + Send mail
+   Voice UI
 ========================== */
 const boardRoot = document.getElementById("boardRoot");
 
@@ -641,25 +640,17 @@ const voiceText  = $("voiceText");
 const voiceHint  = $("voiceHint");
 
 function openVoice(){
-  // 讓背景不可被 tab 到（避免 aria-hidden 警告）
   if (boardRoot) boardRoot.inert = true;
-
   voiceModal.classList.add("show");
   voiceModal.setAttribute("aria-hidden","false");
-
   setTimeout(() => { try { startRec.focus(); } catch(e){} }, 0);
 }
 
 function closeVoiceModal(){
-  // ✅ 先把焦點移回 🎤，避免 aria-hidden 警告
   try { voiceBtn.focus(); } catch(e){}
-
-  // 停止錄音（若正在錄）
   try { if (rec && !stopRec.disabled) rec.stop(); } catch(e){}
-
   voiceModal.classList.remove("show");
   voiceModal.setAttribute("aria-hidden","true");
-
   if (boardRoot) boardRoot.inert = false;
 }
 
@@ -724,7 +715,6 @@ if (!SpeechRecognition) {
   });
 }
 
-/* ✅ 送信：永遠先讀 text，再嘗試 JSON（避免你遇到的 parse 失敗） */
 sendVoice.addEventListener("click", async () => {
   const text = (voiceText.value || "").trim();
   if (!text) { voiceHint.textContent = "內容是空的，請先說話或輸入文字。"; return; }
@@ -778,9 +768,8 @@ sendVoice.addEventListener("click", async () => {
 });
 
 /* ==========================
-   Init UI + MQTT
+   Init + MQTT
 ========================== */
-// 預設狀態：外出中 ✅
 setStatus("out","外出中","warn");
 setNet(false, "MQTT 未連線");
 setMarquee("等待公告…（可由 MQTT 設定）");
@@ -794,10 +783,10 @@ function tickClock(){
 tickClock();
 setInterval(tickClock, 1000);
 
-// Start marquee animation
+// Start marquee
 requestAnimationFrame(marqueeLoop);
 
-// MQTT client
+// MQTT
 const client = mqtt.connect(CONNECT_URL, {
   clientId: "hiot-board-" + Math.random().toString(16).slice(2),
   clean: true,
