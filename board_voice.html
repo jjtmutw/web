@@ -623,12 +623,12 @@
   window.addEventListener("resize", () => { x = viewport.clientWidth; });
 
   // =======================
-  // 語音留言 → Apps Script 寄信
+  // 語音留言 → Apps Script 寄信（✅ 改為 x-www-form-urlencoded 避免 CORS preflight）
   // =======================
   const MAIL_ENDPOINT = "https://script.google.com/macros/s/AKfycbwHM5AROpfJpd2DCIKBFjYQ_w89oiwaohsMum9_-Kuhgb1ZuMN9aFhks2EWm8wvORCo/exec";
 
   // ⚠️ 這串必須與你 Apps Script (Code.gs) 的 SECRET 一致
-  const MAIL_SECRET   = "dfdfshfddsfhsdhsdsdsdshfdhgfdsG";
+  const MAIL_SECRET   = "CHANGE_ME_TO_A_LONG_RANDOM_STRING";
 
   const voiceBtn   = document.getElementById("voiceBtn");
   const voiceModal = document.getElementById("voiceModal");
@@ -662,7 +662,7 @@
     startRec.disabled = true;
   } else {
     rec = new SpeechRecognition();
-    rec.lang = "zh-TW";          // 需要可改成 en-US
+    rec.lang = "zh-TW";
     rec.interimResults = true;
     rec.continuous = true;
 
@@ -712,10 +712,7 @@
 
   sendVoice.addEventListener("click", async () => {
     const text = (voiceText.value || "").trim();
-    if (!text) {
-      voiceHint.textContent = "內容是空的，請先說話或輸入文字。";
-      return;
-    }
+    if (!text) { voiceHint.textContent = "內容是空的，請先說話或輸入文字。"; return; }
     if (!MAIL_SECRET || MAIL_SECRET.includes("CHANGE_ME")) {
       voiceHint.textContent = "尚未設定 MAIL_SECRET（需與 Apps Script 的 SECRET 一致）。";
       return;
@@ -725,14 +722,6 @@
     voiceHint.textContent = "送出中…";
 
     try {
-      const payload = {
-        secret: MAIL_SECRET,
-        text,
-        sender: "HIoT Board Voice",
-        page: location.href,
-        ts: new Date().toISOString()
-      };
-
       const form = new URLSearchParams();
       form.set("secret", MAIL_SECRET);
       form.set("text", text);
@@ -745,9 +734,6 @@
         headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
         body: form.toString()
       });
-
-const data = await resp.json().catch(() => ({}));
-
 
       const data = await resp.json().catch(() => ({}));
       if (data && data.ok) {
