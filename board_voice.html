@@ -600,14 +600,22 @@ const sendVoice  = $("sendVoice");
 const voiceText  = $("voiceText");
 const voiceHint  = $("voiceHint");
 
+const board = document.querySelector(".board");
+
 function openVoice(){
+  if (board) board.inert = true;
   voiceModal.classList.add("show");
   voiceModal.setAttribute("aria-hidden","false");
+  setTimeout(() => { try { startRec.focus(); } catch(e) {} }, 0);
 }
+
 function closeVoiceModal(){
+  try { voiceBtn.focus(); } catch(e) {}
   voiceModal.classList.remove("show");
   voiceModal.setAttribute("aria-hidden","true");
+  if (board) board.inert = false;
 }
+
 
 voiceBtn.addEventListener("click", openVoice);
 closeVoice.addEventListener("click", closeVoiceModal);
