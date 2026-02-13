@@ -1,415 +1,263 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HIoT 實驗室電子布告牌</title>
-  <style>
-    :root{
-      --bg:#0b1220;
-      --text:#e8eefc;
-      --muted:#a9b6d6;
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HIoT 實驗室電子布告牌</title>
 
-      --ok:#22c55e;
-      --warn:#f59e0b;
-      --busy:#ef4444;
-      --cool:#38bdf8;
-      --gray:#94a3b8;
-      --vac:#a78bfa; /* 休假紫 */
-    }
+<style>
+:root{
+  --bg:#0b1220;
+  --text:#e8eefc;
+  --muted:#a9b6d6;
 
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif;
-      background: radial-gradient(1200px 700px at 20% 10%, rgba(96,165,250,.15), transparent 60%),
-                  radial-gradient(1000px 600px at 80% 30%, rgba(34,197,94,.10), transparent 60%),
-                  var(--bg);
-      color:var(--text);
-      height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:32px;
-    }
+  --ok:#22c55e;
+  --warn:#f59e0b;
+  --busy:#ef4444;
+  --cool:#38bdf8;
+  --gray:#94a3b8;
+  --vac:#a78bfa;
+}
 
-    .board{
-      width:min(1200px, 100%);
-      border-radius:28px;
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow: 0 20px 70px rgba(0,0,0,.45);
-      overflow:hidden;
-    }
+*{box-sizing:border-box}
 
-    header{
-      padding:28px 32px 18px;
-      display:flex;
-      justify-content:space-between;
-      gap:16px;
-      align-items:flex-end;
-    }
+body{
+margin:0;
+font-family:system-ui,"Noto Sans TC";
+background:var(--bg);
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+}
 
-    .labname{
-      font-size:44px;
-      font-weight:900;
-      letter-spacing:.6px;
-      line-height:1.1;
-    }
+.board{
+width:1200px;
+background:#0b1220;
+border-radius:20px;
+overflow:hidden;
+box-shadow:0 20px 70px rgba(0,0,0,.5);
+}
 
-    .sub{
-      margin-top:10px;
-      color:var(--muted);
-      font-size:16px;
-    }
+/* ===== 白色 Banner ===== */
+.banner{
+background:white;
+height:90px;
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:10px 40px;
+}
 
-    .right{
-      text-align:right;
-      min-width:260px;
-    }
+.banner img{
+height:60px;
+object-fit:contain;
+}
 
-    .clock{
-      font-variant-numeric: tabular-nums;
-      font-size:28px;
-      font-weight:800;
-    }
-    .net{
-      margin-top:8px;
-      font-size:14px;
-      color:var(--muted);
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:flex-end;
-    }
-    .dot{
-      width:10px;height:10px;border-radius:999px;background:var(--gray);
-      box-shadow:0 0 0 4px rgba(148,163,184,.15);
-    }
-    .dot.ok{ background:var(--ok); box-shadow:0 0 0 4px rgba(34,197,94,.18); }
-    .dot.bad{ background:var(--busy); box-shadow:0 0 0 4px rgba(239,68,68,.18); }
+/* ===== Header ===== */
+header{
+padding:18px 32px;
+display:flex;
+justify-content:space-between;
+align-items:flex-end;
+color:white;
+}
 
-    /* ✅ 左大右小：照片縮小一點 */
-    main{
-      padding:26px 32px 34px;
-      display:grid;
-      grid-template-columns: 1.55fr .45fr; /* 原 1.2 / .8 → 讓右邊變窄 */
-      gap:18px;
-      align-items:stretch;
-    }
+.labname{
+font-size:44px;
+font-weight:900;
+}
 
-    .statusCard{
-      background: rgba(18,27,46,.78);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:24px;
-      padding:28px;
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-      min-height:320px;
-    }
+.clock{
+font-size:28px;
+font-weight:800;
+text-align:right;
+}
 
-    .label{
-      color:var(--muted);
-      font-size:15px;
-      letter-spacing:.4px;
-    }
+/* ===== Main ===== */
+main{
+padding:20px 32px 32px;
+display:grid;
+grid-template-columns:1.55fr .45fr;
+gap:18px;
+}
 
-    .statusLine{
-      display:flex;
-      align-items:center;
-      gap:14px;
-      justify-content:center; /* ✅ 左右置中 */
-    }
+/* 左側狀態 */
+.statusCard{
+background:#121b2e;
+border-radius:20px;
+padding:20px;
+display:flex;
+flex-direction:column;
+}
 
-    .badge{
-      padding:10px 14px;
-      border-radius:999px;
-      font-weight:900;
-      letter-spacing:.5px;
-      font-size:14px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      color:var(--text);
-    }
+.statusBody{
+flex:1;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+gap:24px;
+}
 
-    .pill{
-      width:14px;height:14px;border-radius:999px;
-      background:var(--gray);
-      box-shadow:0 0 0 6px rgba(148,163,184,.12);
-    }
-    .pill.ok{ background:var(--ok); box-shadow:0 0 0 6px rgba(34,197,94,.14); }
-    .pill.warn{ background:var(--warn); box-shadow:0 0 0 6px rgba(245,158,11,.14); }
-    .pill.busy{ background:var(--busy); box-shadow:0 0 0 6px rgba(239,68,68,.14); }
-    .pill.cool{ background:var(--cool); box-shadow:0 0 0 6px rgba(56,189,248,.14); }
-    .pill.gray{ background:var(--gray); box-shadow:0 0 0 6px rgba(148,163,184,.12); }
-    .pill.vac{ background:var(--vac); box-shadow:0 0 0 6px rgba(167,139,250,.16); }
+.statusLine{
+display:flex;
+align-items:center;
+gap:12px;
+}
 
-    /* ✅ 狀態字型再加大 + 左右置中 + 上下置中 */
-    .statusText{
-      font-size:92px;         /* 原 72 → 92 */
-      font-weight:1000;
-      line-height:1.02;
-      letter-spacing:1px;
-      text-align:center;      /* ✅ 左右置中 */
-      margin:0;
-    }
+.pill{
+width:14px;height:14px;border-radius:50%;
+background:var(--gray);
+}
 
-    .statusBody{
-      flex:1;                 /* ✅ 讓內容吃滿高度 */
-      display:flex;
-      flex-direction:column;
-      justify-content:center; /* ✅ 上下置中 */
-      gap:18px;
-    }
+.badge{
+padding:6px 14px;
+border-radius:20px;
+background:#222;
+font-weight:900;
+}
 
-    /* ✅ 右側：照片卡（縮小後仍好看） */
-    .photoCard{
-      background: rgba(18,27,46,.60);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:24px;
-      padding:14px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      overflow:hidden;
-    }
+.statusText{
+font-size:96px;
+font-weight:1000;
+text-align:center;
+}
 
-    .photoCaption{
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      color:var(--text);
-      font-weight:900;
-      font-size:20px; /* ✅ 字大一點 */
-      letter-spacing:.5px;
-      padding:2px 4px 2px;
-      text-align:center;
-    }
+/* 右側照片 */
+.photoCard{
+background:#121b2e;
+border-radius:20px;
+padding:12px;
+display:flex;
+flex-direction:column;
+}
 
-    .photoWrap{
-      border-radius:20px;
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      height:100%;
-      min-height:260px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
+.photoCaption{
+text-align:center;
+font-size:22px;
+font-weight:900;
+margin-bottom:8px;
+}
 
-    .photoWrap img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-    }
+.photoWrap{
+flex:1;
+border-radius:16px;
+overflow:hidden;
+}
 
-    footer{
-      padding:14px 32px 18px;
-      color:var(--muted);
-      font-size:13px;
-      display:flex;
-      justify-content:space-between;
-      border-top:1px solid rgba(255,255,255,.08);
-    }
+.photoWrap img{
+width:100%;
+height:100%;
+object-fit:cover;
+}
 
-    @media (max-width: 900px){
-      main{ grid-template-columns: 1fr; }
-      .statusText{ font-size:64px; }
-      .labname{ font-size:34px; }
-      .photoWrap{ min-height:240px; }
-    }
-  </style>
+/* footer */
+footer{
+color:#aaa;
+padding:10px 32px;
+display:flex;
+justify-content:space-between;
+font-size:13px;
+}
+
+</style>
 </head>
 
 <body>
-  <div class="board">
-    <header>
-      <div>
-        <!-- ✅ 主標題改名 -->
-        <div class="labname" id="labName">健康物聯網 HIoT 實驗室</div>
-        <div class="sub">Laboratory Status Board (MQTT over WSS)</div>
-      </div>
-      <div class="right">
-        <div class="clock" id="clock">--:--</div>
-        <div class="net">
-          <span class="dot" id="netDot"></span>
-          <span id="netText">MQTT 未連線</span>
-        </div>
-      </div>
-    </header>
 
-    <main>
-      <section class="statusCard">
-        <div class="label">目前狀態</div>
+<div class="board">
 
-        <!-- ✅ 用 statusBody 做上下置中 -->
-        <div class="statusBody">
-          <div class="statusLine">
-            <span class="pill gray" id="statusPill"></span>
-            <span class="badge" id="statusCode">UNKNOWN</span>
-          </div>
+<!-- ===== 白色 Logo Banner ===== -->
+<div class="banner">
+  <img src="tmutitle.png">
+  <img src="comlogo.png">
+</div>
 
-          <div class="statusText" id="statusText">等待更新</div>
-        </div>
-      </section>
+<header>
+  <div class="labname">健康物聯網 HIoT 實驗室</div>
+  <div class="clock" id="clock">--:--</div>
+</header>
 
-      <aside class="photoCard">
-        <!-- ✅ 改為「簡文山 教授」+ 字變大 -->
-        <div class="photoCaption">簡文山 教授</div>
-        <div class="photoWrap">
-          <!-- board.html 同資料夾放 jj.jpg -->
-          <img src="jj.jpg" alt="jj"
-               onerror="this.alt='找不到 jj.jpg，請確認與 board.html 同資料夾'; this.style.objectFit='contain';">
-        </div>
-      </aside>
-    </main>
+<main>
 
-    <footer>
-      <div>顯示頁面：建議全螢幕（F11）</div>
-      <div>最後更新：<span id="lastUpdate">—</span></div>
-    </footer>
+<section class="statusCard">
+  <div class="statusBody">
+    <div class="statusLine">
+      <div class="pill" id="pill"></div>
+      <div class="badge" id="code">UNKNOWN</div>
+    </div>
+
+    <div class="statusText" id="status">等待更新</div>
   </div>
+</section>
 
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-  <script>
-    const CONFIG = {
-      labName: "健康物聯網 HIoT 實驗室",
-      wsUrl: "wss://broker.emqx.io:8084/mqtt",
-      topic: "JJ/LAB/status",
-      clientId: "lab-board-" + Math.random().toString(16).slice(2),
-      username: "",
-      password: ""
-    };
+<aside class="photoCard">
+  <div class="photoCaption">簡文山 教授</div>
+  <div class="photoWrap">
+    <img src="jj.jpg">
+  </div>
+</aside>
 
-    const $ = (id) => document.getElementById(id);
+</main>
 
-    function setNet(connected, text){
-      $("netDot").className = "dot " + (connected ? "ok" : "bad");
-      $("netText").textContent = text;
-    }
+<footer>
+<div>顯示頁面建議全螢幕 (F11)</div>
+<div id="last">—</div>
+</footer>
 
-    function nowStr(){
-      const d = new Date();
-      const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,"0");
-      const da = String(d.getDate()).padStart(2,"0");
-      const hh = String(d.getHours()).padStart(2,"0");
-      const mm = String(d.getMinutes()).padStart(2,"0");
-      const ss = String(d.getSeconds()).padStart(2,"0");
-      return `${y}-${m}-${da} ${hh}:${mm}:${ss}`;
-    }
+</div>
 
-    function setStatus(code, text, level){
-      $("statusCode").textContent = (code || "unknown").toUpperCase();
-      $("statusText").textContent = text || "等待更新";
-      $("lastUpdate").textContent = nowStr();
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
-      const lv = level || "gray";
-      $("statusPill").className = "pill " + lv;
-    }
+<script>
 
-    // ✅ 中英都吃：英文 key + 中文同義詞
-    function parsePayload(payload){
-      const raw = (payload || "").trim();
-      const p = raw.toLowerCase();
+const client = mqtt.connect("wss://broker.emqx.io:8084/mqtt",{
+ clientId:"lab-"+Math.random().toString(16).slice(2)
+});
 
-      // custom:xxx / 自訂:xxx / 自定:xxx
-      const customPrefixes = ["custom:", "自訂:", "自定:"];
-      for (const pre of customPrefixes){
-        if (p.startsWith(pre)){
-          const customText = raw.slice(pre.length).trim() || "自訂狀態";
-          return { code:"custom", text: customText, level:"cool" };
-        }
-      }
+const topic="JJ/LAB/status";
 
-      const map = new Map([
-        // out
-        ["out","out"], ["外出","out"], ["外出中","out"],
+function now(){
+const d=new Date();
+return d.toLocaleString();
+}
 
-        // class
-        ["class","class"], ["上課","class"], ["上課中","class"], ["授課","class"], ["教學中","class"],
+function setStatus(text,color){
+status.innerText=text;
+pill.style.background=color;
+code.innerText=text;
+last.innerText=now();
+}
 
-        // experiment
-        ["experiment","experiment"], ["實驗","experiment"], ["實驗中","experiment"], ["實驗進行中","experiment"],
+function parse(msg){
+msg=msg.trim().toLowerCase();
 
-        // meeting
-        ["meeting","meeting"], ["開會","meeting"], ["開會中","meeting"], ["會議","meeting"], ["會議中","meeting"],
+if(msg.startsWith("custom:")||msg.startsWith("自訂:"))
+ return setStatus(msg.split(":")[1],"#38bdf8");
 
-        // break
-        ["break","break"], ["休息","break"], ["休息中","break"],
+if(["out","外出","外出中"].includes(msg)) setStatus("外出中","#f59e0b");
+else if(["class","上課","上課中"].includes(msg)) setStatus("上課中","#ef4444");
+else if(["experiment","實驗","實驗中"].includes(msg)) setStatus("實驗中","#22c55e");
+else if(["meeting","開會","會議"].includes(msg)) setStatus("開會中","#ef4444");
+else if(["break","休息"].includes(msg)) setStatus("休息中","#38bdf8");
+else if(["vacation","休假","請假"].includes(msg)) setStatus("休假中","#a78bfa");
+else setStatus(msg,"#94a3b8");
+}
 
-        // vacation
-        ["vacation","vacation"], ["休假","vacation"], ["休假中","vacation"], ["請假","vacation"], ["請假中","vacation"]
-      ]);
+client.on("connect",()=>{
+ client.subscribe(topic);
+});
 
-      const key = map.get(p) || map.get(raw) || null;
+client.on("message",(t,m)=>parse(m.toString()));
 
-      switch(key){
-        case "out":        return { code:"out",        text:"外出中", level:"warn" };
-        case "class":      return { code:"class",      text:"上課中", level:"busy" };
-        case "experiment": return { code:"experiment", text:"實驗中", level:"ok" };
-        case "meeting":    return { code:"meeting",    text:"開會中", level:"busy" };
-        case "break":      return { code:"break",      text:"休息中", level:"cool" };
-        case "vacation":   return { code:"vacation",   text:"休假中", level:"vac" };
-        default:
-          return { code:"msg", text: raw || "等待更新", level:"gray" };
-      }
-    }
+function tick(){
+const d=new Date();
+clock.innerText=d.getHours().toString().padStart(2,"0")+":"+d.getMinutes().toString().padStart(2,"0");
+}
+setInterval(tick,1000);tick();
 
-    // Init UI
-    $("labName").textContent = CONFIG.labName;
+</script>
 
-    setStatus("unknown","等待更新","gray");
-    setNet(false,"MQTT 未連線");
-
-    // Clock
-    function tickClock(){
-      const d = new Date();
-      const hh = String(d.getHours()).padStart(2,"0");
-      const mm = String(d.getMinutes()).padStart(2,"0");
-      $("clock").textContent = `${hh}:${mm}`;
-    }
-    tickClock();
-    setInterval(tickClock, 1000);
-
-    // MQTT
-    const options = {
-      clientId: CONFIG.clientId,
-      keepalive: 30,
-      reconnectPeriod: 2000,
-      connectTimeout: 10000,
-      clean: true
-    };
-    if(CONFIG.username) options.username = CONFIG.username;
-    if(CONFIG.password) options.password = CONFIG.password;
-
-    const client = mqtt.connect(CONFIG.wsUrl, options);
-
-    client.on("connect", () => {
-      setNet(true, "MQTT 已連線");
-      client.subscribe(CONFIG.topic, { qos: 0 }, (err) => {
-        if(err){
-          setNet(false, "訂閱失敗：" + err.message);
-          console.error("Subscribe error:", err);
-        }
-      });
-    });
-
-    client.on("reconnect", () => setNet(false, "重新連線中…"));
-    client.on("close", () => setNet(false, "MQTT 連線關閉"));
-    client.on("error", (e) => {
-      setNet(false, "MQTT 錯誤：" + (e?.message || e));
-      console.error("MQTT error:", e);
-    });
-
-    client.on("message", (topic, message) => {
-      const payload = message.toString("utf-8");
-      const st = parsePayload(payload);
-      setStatus(st.code, st.text, st.level);
-    });
-  </script>
 </body>
 </html>
