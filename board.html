@@ -7,16 +7,15 @@
   <style>
     :root{
       --bg:#0b1220;
-      --card:#121b2e;
       --text:#e8eefc;
       --muted:#a9b6d6;
-      --accent:#60a5fa;
 
       --ok:#22c55e;
       --warn:#f59e0b;
       --busy:#ef4444;
       --cool:#38bdf8;
       --gray:#94a3b8;
+      --vac:#a78bfa; /* 休假紫 */
     }
 
     *{box-sizing:border-box}
@@ -95,6 +94,7 @@
       display:grid;
       grid-template-columns: 1.2fr .8fr;
       gap:18px;
+      align-items:stretch;
     }
 
     .statusCard{
@@ -141,44 +141,56 @@
     .pill.busy{ background:var(--busy); box-shadow:0 0 0 6px rgba(239,68,68,.14); }
     .pill.cool{ background:var(--cool); box-shadow:0 0 0 6px rgba(56,189,248,.14); }
     .pill.gray{ background:var(--gray); box-shadow:0 0 0 6px rgba(148,163,184,.12); }
+    .pill.vac{ background:var(--vac); box-shadow:0 0 0 6px rgba(167,139,250,.16); }
 
+    /* 狀態字型加大 */
     .statusText{
-      font-size:56px;
+      font-size:72px;
       font-weight:900;
-      line-height:1.05;
+      line-height:1.02;
       letter-spacing:1px;
     }
 
-    .hint{
-      color:var(--muted);
-      font-size:16px;
-      line-height:1.6;
-    }
-
-    .side{
-      display:flex;
-      flex-direction:column;
-      gap:18px;
-    }
-
-    .box{
+    /* ✅ 右側改成照片區 */
+    .photoCard{
       background: rgba(18,27,46,.60);
       border:1px solid rgba(255,255,255,.10);
       border-radius:24px;
-      padding:18px 18px;
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      overflow:hidden;
     }
 
-    .row{
+    .photoWrap{
+      border-radius:20px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      height:100%;
+      min-height:320px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .photoWrap img{
+      width:100%;
+      height:100%;
+      object-fit:cover; /* ✅ 自動裁切填滿 */
+      display:block;
+    }
+
+    .photoCaption{
       display:flex;
       justify-content:space-between;
-      gap:12px;
-      padding:10px 6px;
-      border-bottom:1px dashed rgba(255,255,255,.10);
+      align-items:center;
+      gap:10px;
       color:var(--muted);
       font-size:14px;
+      padding:0 4px 2px;
     }
-    .row:last-child{ border-bottom:none; }
-    .row b{ color:var(--text); font-weight:700; }
 
     footer{
       padding:14px 32px 18px;
@@ -191,9 +203,9 @@
 
     @media (max-width: 900px){
       main{ grid-template-columns: 1fr; }
-      .right{ min-width:auto; }
-      .statusText{ font-size:44px; }
+      .statusText{ font-size:54px; }
       .labname{ font-size:32px; }
+      .photoWrap{ min-height:260px; }
     }
   </style>
 </head>
@@ -222,64 +234,38 @@
           <span class="badge" id="statusCode">UNKNOWN</span>
         </div>
         <div class="statusText" id="statusText">等待更新</div>
-        <div class="hint" id="statusHint">
-          由 MQTT 訊息控制：<b>JJ/LAB/status</b><br>
-          範例 payload：out / class / experiment / meeting / break / custom:臨時離開
-        </div>
       </section>
 
-      <aside class="side">
-        <div class="box">
-          <div class="label" style="margin-bottom:8px;">MQTT 連線設定（已為 HTTPS 頁面改用 WSS）</div>
-          <div class="row"><span>WSS URL</span><b id="cfgUrl">wss://broker.emqx.io:8084/mqtt</b></div>
-          <div class="row"><span>Topic</span><b id="cfgTopic">JJ/LAB/status</b></div>
-          <div class="row"><span>Client ID</span><b id="cfgClient">—</b></div>
+      <!-- ✅ 右側欄位：照片 -->
+      <aside class="photoCard">
+        <div class="photoCaption">
+          <span id="photoTitle">Prof. Jian</span>
+          <span>最後更新：<b id="lastUpdate" style="color:var(--text);font-weight:700;">—</b></span>
         </div>
-
-        <div class="box">
-          <div class="label" style="margin-bottom:8px;">快速狀態對照</div>
-          <div class="row"><span>out</span><b>外出中</b></div>
-          <div class="row"><span>class</span><b>上課中</b></div>
-          <div class="row"><span>experiment</span><b>實驗中</b></div>
-          <div class="row"><span>meeting</span><b>開會中</b></div>
-          <div class="row"><span>break</span><b>休息中</b></div>
-          <div class="row"><span>custom:xxx</span><b>自訂文字</b></div>
+        <div class="photoWrap">
+          <!-- 你 repo 同資料夾放 jj.jpg -->
+          <img src="jj.jpg" alt="jj" onerror="this.alt='找不到 jj.jpg，請確認與 board.html 同資料夾'; this.style.objectFit='contain';">
         </div>
       </aside>
     </main>
 
     <footer>
       <div>顯示頁面：建議全螢幕（F11）</div>
-      <div>最後更新：<span id="lastUpdate">—</span></div>
+      <div>Topic：<span id="cfgTopic">JJ/LAB/status</span></div>
     </footer>
   </div>
 
-  <!-- MQTT.js (Browser) -->
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script>
-    // =========================================================
-    // ✅ 只要改這裡：實驗室名稱 / topic（必要時可改 broker）
-    // =========================================================
     const CONFIG = {
       labName: "醫療 AI 與健康 IoT 實驗室",
-
-      // ✅ GitHub Pages 是 HTTPS，必須用 WSS（加密 WebSocket）
-      // EMQX public broker 的 WSS 通常為 8084 + /mqtt
       wsUrl: "wss://broker.emqx.io:8084/mqtt",
-
       topic: "JJ/LAB/status",
-
-      // ✅ 避免 public broker clientId 撞名被踢：每次隨機一個
       clientId: "lab-board-" + Math.random().toString(16).slice(2),
-
-      // public broker 通常可留空
       username: "",
       password: ""
     };
 
-    // =========================================================
-    // UI helpers
-    // =========================================================
     const $ = (id) => document.getElementById(id);
 
     function setNet(connected, text){
@@ -307,34 +293,59 @@
       $("statusPill").className = "pill " + lv;
     }
 
+    /* ✅ 中英都吃：英文 key + 中文同義詞 */
     function parsePayload(payload){
-      const p = (payload || "").trim();
+      const raw = (payload || "").trim();
+      const p = raw.toLowerCase();
 
-      // custom:xxx
-      if(p.toLowerCase().startsWith("custom:")){
-        const customText = p.slice(7).trim() || "自訂狀態";
-        return { code:"custom", text: customText, level:"cool" };
+      // custom:xxx / 自訂:xxx / 自定:xxx
+      const customPrefixes = ["custom:", "自訂:", "自定:"];
+      for (const pre of customPrefixes){
+        if (raw.startsWith(pre) || p.startsWith(pre)){
+          const customText = raw.slice(pre.length).trim() || "自訂狀態";
+          return { code:"custom", text: customText, level:"cool" };
+        }
       }
 
-      switch(p.toLowerCase()){
+      // 把常見中文直接映射成標準代碼
+      const map = new Map([
+        // out
+        ["out","out"], ["外出","out"], ["外出中","out"], ["外出ing","out"],
+
+        // class
+        ["class","class"], ["上課","class"], ["上課中","class"], ["授課","class"], ["教學中","class"],
+
+        // experiment
+        ["experiment","experiment"], ["實驗","experiment"], ["實驗中","experiment"], ["實驗進行中","experiment"],
+
+        // meeting
+        ["meeting","meeting"], ["開會","meeting"], ["開會中","meeting"], ["會議","meeting"], ["會議中","meeting"],
+
+        // break
+        ["break","break"], ["休息","break"], ["休息中","break"],
+
+        // vacation
+        ["vacation","vacation"], ["休假","vacation"], ["休假中","vacation"], ["請假","vacation"], ["請假中","vacation"]
+      ]);
+
+      const key = map.get(p) || map.get(raw) || null;
+
+      switch(key){
         case "out":        return { code:"out",        text:"外出中", level:"warn" };
         case "class":      return { code:"class",      text:"上課中", level:"busy" };
         case "experiment": return { code:"experiment", text:"實驗中", level:"ok" };
         case "meeting":    return { code:"meeting",    text:"開會中", level:"busy" };
         case "break":      return { code:"break",      text:"休息中", level:"cool" };
+        case "vacation":   return { code:"vacation",   text:"休假中", level:"vac" };
         default:
-          // 任何未知字串都直接顯示
-          return { code:"msg", text: p || "等待更新", level:"gray" };
+          // 任何未知字串就直接顯示（例如直接丟「訪客來訪」也會顯示）
+          return { code:"msg", text: raw || "等待更新", level:"gray" };
       }
     }
 
-    // =========================================================
     // Init UI
-    // =========================================================
     $("labName").textContent = CONFIG.labName;
-    $("cfgUrl").textContent = CONFIG.wsUrl;
     $("cfgTopic").textContent = CONFIG.topic;
-    $("cfgClient").textContent = CONFIG.clientId;
 
     setStatus("unknown","等待更新","gray");
     setNet(false,"MQTT 未連線");
@@ -349,9 +360,7 @@
     tickClock();
     setInterval(tickClock, 1000);
 
-    // =========================================================
-    // MQTT connect (WSS)
-    // =========================================================
+    // MQTT
     const options = {
       clientId: CONFIG.clientId,
       keepalive: 30,
