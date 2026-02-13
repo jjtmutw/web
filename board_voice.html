@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>HIoT 實驗室電子布告牌</title>
+<title>HIoT 實驗室電子布告牌（含MQTT＋跑馬燈＋語音留言寄信）</title>
 
 <style>
   :root{
@@ -370,7 +370,7 @@
 
   <header>
     <div>
-      <div class="labname" id="labName">健康物聯網 HIoT 實驗室</div>
+      <div class="labname">健康物聯網 HIoT 實驗室</div>
       <div class="sub">Laboratory Status Board (MQTT over WSS)</div>
     </div>
 
@@ -446,290 +446,318 @@
 </div>
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
 <script>
-  // ==========================
-  // MQTT 設定
-  // ==========================
-  const CONNECT_URL   = "wss://broker.emqx.io:8084/mqtt";
-  const STATUS_TOPIC  = "JJ/LAB/status";
-  const MARQ_TOPIC    = "JJ/LAB/marquee";
+/* =========================================
+   CONFIG
+========================================= */
+const CONNECT_URL   = "wss://broker.emqx.io:8084/mqtt";
+const STATUS_TOPIC  = "JJ/LAB/status";
+const MARQ_TOPIC    = "JJ/LAB/marquee";
 
-  const $ = (id) => document.getElementById(id);
+// Apps Script Web App URL（你提供的）
+const MAIL_ENDPOINT = "https://script.google.com/macros/s/AKfycbwHM5AROpfJpd2DCIKBFjYQ_w89oiwaohsMum9_-Kuhgb1ZuMN9aFhks2EWm8wvORCo/exec";
 
-  function setNet(ok, text){
-    $("netDot").className = "dot " + (ok ? "ok" : "bad");
-    $("netText").textContent = text;
-  }
+// ⚠️ 必須與你的 Apps Script Code.gs 的 SECRET 完全一致
+const MAIL_SECRET   = "CHANGE_ME_TO_A_LONG_RANDOM_STRING";
 
-  function nowStr(){
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,"0");
-    const da = String(d.getDate()).padStart(2,"0");
-    const hh = String(d.getHours()).padStart(2,"0");
-    const mm = String(d.getMinutes()).padStart(2,"0");
-    const ss = String(d.getSeconds()).padStart(2,"0");
-    return `${y}-${m}-${da} ${hh}:${mm}:${ss}`;
-  }
+/* =========================================
+   Helpers
+========================================= */
+const $ = (id) => document.getElementById(id);
 
-  function setStatus(code, text, level){
-    $("statusCode").textContent = (code || "unknown").toUpperCase();
-    $("statusText").textContent = text || "等待更新";
-    $("lastUpdate").textContent = nowStr();
-    $("statusPill").className = "pill " + (level || "gray");
-  }
+function setNet(ok, text){
+  $("netDot").className = "dot " + (ok ? "ok" : "bad");
+  $("netText").textContent = text;
+}
 
-  // ✅ 預設狀態固定為「上課中」
-  setStatus("class","上課中","busy");
+function nowStr(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const da = String(d.getDate()).padStart(2,"0");
+  const hh = String(d.getHours()).padStart(2,"0");
+  const mm = String(d.getMinutes()).padStart(2,"0");
+  const ss = String(d.getSeconds()).padStart(2,"0");
+  return `${y}-${m}-${da} ${hh}:${mm}:${ss}`;
+}
 
-  function parseStatusPayload(payload){
-    const raw = (payload || "").trim();
-    const low = raw.toLowerCase();
+function setStatus(code, text, level){
+  $("statusCode").textContent = (code || "unknown").toUpperCase();
+  $("statusText").textContent = text || "等待更新";
+  $("lastUpdate").textContent = nowStr();
+  $("statusPill").className = "pill " + (level || "gray");
+}
 
-    const customPrefixes = ["custom:", "自訂:", "自定:"];
-    for (const pre of customPrefixes){
-      if (low.startsWith(pre)){
-        const customText = raw.slice(pre.length).trim() || "自訂狀態";
-        return { code:"custom", text: customText, level:"cool" };
-      }
-    }
+/* =========================================
+   Status parsing
+========================================= */
+function parseStatusPayload(payload){
+  const raw = (payload || "").trim();
+  const low = raw.toLowerCase();
 
-    const map = new Map([
-      ["out","out"], ["外出","out"], ["外出中","out"],
-      ["class","class"], ["上課","class"], ["上課中","class"], ["授課","class"], ["教學中","class"],
-      ["experiment","experiment"], ["實驗","experiment"], ["實驗中","experiment"],
-      ["meeting","meeting"], ["開會","meeting"], ["開會中","meeting"], ["會議","meeting"], ["會議中","meeting"],
-      ["break","break"], ["休息","break"], ["休息中","break"],
-      ["vacation","vacation"], ["休假","vacation"], ["休假中","vacation"], ["請假","vacation"], ["請假中","vacation"]
-    ]);
-
-    const key = map.get(low) || map.get(raw) || null;
-
-    switch(key){
-      case "out":        return { code:"out",        text:"外出中", level:"warn" };
-      case "class":      return { code:"class",      text:"上課中", level:"busy" };
-      case "experiment": return { code:"experiment", text:"實驗中", level:"ok" };
-      case "meeting":    return { code:"meeting",    text:"開會中", level:"busy" };
-      case "break":      return { code:"break",      text:"休息中", level:"cool" };
-      case "vacation":   return { code:"vacation",   text:"休假中", level:"vac" };
-      default:           return { code:"msg", text: raw || "等待更新", level:"gray" };
+  const customPrefixes = ["custom:", "自訂:", "自定:"];
+  for (const pre of customPrefixes){
+    if (low.startsWith(pre)){
+      const customText = raw.slice(pre.length).trim() || "自訂狀態";
+      return { code:"custom", text: customText, level:"cool" };
     }
   }
 
-  // ==========================
-  // Marquee engine
-  // ==========================
-  let marqueeSpeed = 90;
-  let marqueePaused = false;
+  const map = new Map([
+    ["out","out"], ["外出","out"], ["外出中","out"],
+    ["class","class"], ["上課","class"], ["上課中","class"], ["授課","class"], ["教學中","class"],
+    ["experiment","experiment"], ["實驗","experiment"], ["實驗中","experiment"],
+    ["meeting","meeting"], ["開會","meeting"], ["開會中","meeting"], ["會議","meeting"], ["會議中","meeting"],
+    ["break","break"], ["休息","break"], ["休息中","break"],
+    ["vacation","vacation"], ["休假","vacation"], ["休假中","vacation"], ["請假","vacation"], ["請假中","vacation"]
+  ]);
 
-  const viewport = $("marqueeViewport");
-  const track = $("marqueeTrack");
+  const key = map.get(low) || map.get(raw) || null;
 
-  let x = 0;
-  let lastT = performance.now();
-
-  function setMarquee(text){
-    const t = (text || "").trim() || "（空白公告）";
-    track.textContent = t;
-    x = viewport.clientWidth;
-    lastT = performance.now();
+  switch(key){
+    case "out":        return { code:"out",        text:"外出中", level:"warn" };
+    case "class":      return { code:"class",      text:"上課中", level:"busy" };
+    case "experiment": return { code:"experiment", text:"實驗中", level:"ok" };
+    case "meeting":    return { code:"meeting",    text:"開會中", level:"busy" };
+    case "break":      return { code:"break",      text:"休息中", level:"cool" };
+    case "vacation":   return { code:"vacation",   text:"休假中", level:"vac" };
+    default:           return { code:"msg", text: raw || "等待更新", level:"gray" };
   }
+}
 
-  function setMarqueeSpeed(pxPerSec){
-    const v = Number(pxPerSec);
-    if (!Number.isFinite(v)) return;
-    marqueeSpeed = Math.max(20, Math.min(260, v));
-  }
+/* =========================================
+   Marquee engine
+========================================= */
+let marqueeSpeed = 90;
+let marqueePaused = false;
 
-  function marqueeLoop(t){
-    const dt = (t - lastT) / 1000;
-    lastT = t;
+const viewport = $("marqueeViewport");
+const track = $("marqueeTrack");
 
-    if (!marqueePaused){
-      x -= marqueeSpeed * dt;
-      const w = track.scrollWidth;
-      if (x < -w) x = viewport.clientWidth;
-      track.style.transform = `translateX(${x}px)`;
-    }
-    requestAnimationFrame(marqueeLoop);
+let x = 0;
+let lastT = performance.now();
+
+function setMarquee(text){
+  const t = (text || "").trim() || "（空白公告）";
+  track.textContent = t;
+  x = viewport.clientWidth;
+  lastT = performance.now();
+}
+
+function setMarqueeSpeed(pxPerSec){
+  const v = Number(pxPerSec);
+  if (!Number.isFinite(v)) return;
+  marqueeSpeed = Math.max(20, Math.min(260, v));
+}
+
+function marqueeLoop(t){
+  const dt = (t - lastT) / 1000;
+  lastT = t;
+
+  if (!marqueePaused){
+    x -= marqueeSpeed * dt;
+    const w = track.scrollWidth;
+    if (x < -w) x = viewport.clientWidth;
+    track.style.transform = `translateX(${x}px)`;
   }
   requestAnimationFrame(marqueeLoop);
+}
 
-  function parseMarqueePayload(payload){
-    const raw = (payload || "").trim();
-    const low = raw.toLowerCase();
+function parseMarqueePayload(payload){
+  const raw = (payload || "").trim();
+  const low = raw.toLowerCase();
 
-    if (low === "pause" || raw === "暫停"){ marqueePaused = true; return; }
-    if (low === "play" || raw === "播放" || raw === "開始"){ marqueePaused = false; return; }
+  if (low === "pause" || raw === "暫停"){ marqueePaused = true; return; }
+  if (low === "play" || raw === "播放" || raw === "開始"){ marqueePaused = false; return; }
 
-    const m = raw.match(/^speed\s*=\s*(\d+)\s*;\s*(.*)$/i);
-    if (m){
-      setMarqueeSpeed(parseInt(m[1], 10));
-      setMarquee(m[2]);
-      return;
-    }
-    setMarquee(raw);
+  const m = raw.match(/^speed\s*=\s*(\d+)\s*;\s*(.*)$/i);
+  if (m){
+    setMarqueeSpeed(parseInt(m[1], 10));
+    setMarquee(m[2]);
+    return;
   }
+  setMarquee(raw);
+}
 
-  // Clock
-  function tickClock(){
-    const d = new Date();
-    $("clock").textContent =
-      String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
-  }
-  tickClock();
-  setInterval(tickClock, 1000);
+/* =========================================
+   Voice UI + Speech Recognition + Send mail
+========================================= */
+const voiceBtn   = $("voiceBtn");
+const voiceModal = $("voiceModal");
+const startRec   = $("startRec");
+const stopRec    = $("stopRec");
+const clearRec   = $("clearRec");
+const closeVoice = $("closeVoice");
+const sendVoice  = $("sendVoice");
+const voiceText  = $("voiceText");
+const voiceHint  = $("voiceHint");
 
-  // Defaults
-  setNet(false, "MQTT 未連線");
-  setMarquee("等待公告…（可由 MQTT 設定）");
+function openVoice(){
+  voiceModal.classList.add("show");
+  voiceModal.setAttribute("aria-hidden","false");
+}
+function closeVoiceModal(){
+  voiceModal.classList.remove("show");
+  voiceModal.setAttribute("aria-hidden","true");
+}
 
-  // MQTT
-  const client = mqtt.connect(CONNECT_URL, {
-    clientId: "hiot-board-" + Math.random().toString(16).slice(2),
-    clean: true,
-    keepalive: 30,
-    reconnectPeriod: 2000,
-    connectTimeout: 10000
-  });
+voiceBtn.addEventListener("click", openVoice);
+closeVoice.addEventListener("click", closeVoiceModal);
+voiceModal.addEventListener("click", (e) => { if(e.target === voiceModal) closeVoiceModal(); });
+clearRec.addEventListener("click", () => { voiceText.value = ""; });
 
-  client.on("connect", () => {
-    setNet(true, "MQTT 已連線");
-    client.subscribe([STATUS_TOPIC, MARQ_TOPIC], { qos: 0 }, (err) => {
-      if (err) setNet(false, "訂閱失敗：" + err.message);
-    });
-  });
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
 
-  client.on("reconnect", () => setNet(false, "重新連線中…"));
-  client.on("offline", () => setNet(false, "離線（offline）"));
-  client.on("close", () => setNet(false, "連線已關閉"));
-  client.on("error", (e) => setNet(false, "錯誤：" + (e?.message || e)));
+if (!SpeechRecognition) {
+  voiceHint.textContent = "此瀏覽器不支援語音辨識（建議 Chrome/Edge）。你仍可手動輸入文字後送出。";
+  startRec.disabled = true;
+} else {
+  rec = new SpeechRecognition();
+  rec.lang = "zh-TW";
+  rec.interimResults = true;
+  rec.continuous = true;
 
-  client.on("message", (topic, message) => {
-    const payload = message.toString("utf-8");
+  let finalText = "";
 
-    if (topic === STATUS_TOPIC){
-      const st = parseStatusPayload(payload);
-      setStatus(st.code, st.text, st.level);
-      return;
-    }
-
-    if (topic === MARQ_TOPIC){
-      parseMarqueePayload(payload);
-      return;
-    }
-  });
-
-  window.addEventListener("resize", () => { x = viewport.clientWidth; });
-
-  // =======================
-  // 語音留言 → Apps Script 寄信（✅ 改為 x-www-form-urlencoded 避免 CORS preflight）
-  // =======================
-  const MAIL_ENDPOINT = "https://script.google.com/macros/s/AKfycbwHM5AROpfJpd2DCIKBFjYQ_w89oiwaohsMum9_-Kuhgb1ZuMN9aFhks2EWm8wvORCo/exec";
-
-  // ⚠️ 這串必須與你 Apps Script (Code.gs) 的 SECRET 一致
-  const MAIL_SECRET   = "dfdfshfddsfhsdhsdsdsdshfdhgfdsG";
-
-  const voiceBtn   = document.getElementById("voiceBtn");
-  const voiceModal = document.getElementById("voiceModal");
-  const startRec   = document.getElementById("startRec");
-  const stopRec    = document.getElementById("stopRec");
-  const clearRec   = document.getElementById("clearRec");
-  const closeVoice = document.getElementById("closeVoice");
-  const sendVoice  = document.getElementById("sendVoice");
-  const voiceText  = document.getElementById("voiceText");
-  const voiceHint  = document.getElementById("voiceHint");
-
-  function openVoice(){
-    voiceModal.classList.add("show");
-    voiceModal.setAttribute("aria-hidden","false");
-  }
-  function closeVoiceModal(){
-    voiceModal.classList.remove("show");
-    voiceModal.setAttribute("aria-hidden","true");
-  }
-
-  voiceBtn.addEventListener("click", openVoice);
-  closeVoice.addEventListener("click", closeVoiceModal);
-  voiceModal.addEventListener("click", (e) => { if(e.target === voiceModal) closeVoiceModal(); });
-  clearRec.addEventListener("click", () => { voiceText.value = ""; });
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let rec = null;
-
-  if (!SpeechRecognition) {
-    voiceHint.textContent = "此瀏覽器不支援語音辨識（建議 Chrome/Edge）。你仍可手動輸入文字後送出。";
+  rec.onstart = () => {
+    voiceHint.textContent = "錄音中…請開始說話（可中英文混用）。";
     startRec.disabled = true;
-  } else {
-    rec = new SpeechRecognition();
-    rec.lang = "zh-TW";
-    rec.interimResults = true;
-    rec.continuous = true;
+    stopRec.disabled = false;
+  };
 
-    let finalText = "";
+  rec.onerror = (e) => {
+    voiceHint.textContent = "語音辨識錯誤：" + (e.error || "unknown");
+    startRec.disabled = false;
+    stopRec.disabled = true;
+  };
 
-    rec.onstart = () => {
-      voiceHint.textContent = "錄音中…請開始說話（可中英文混用）。";
-      startRec.disabled = true;
-      stopRec.disabled = false;
-    };
+  rec.onend = () => {
+    startRec.disabled = false;
+    stopRec.disabled = true;
+    voiceHint.textContent = "已停止錄音。你可編輯文字後送出。";
+  };
 
-    rec.onerror = (e) => {
-      voiceHint.textContent = "語音辨識錯誤：" + (e.error || "unknown");
-      startRec.disabled = false;
-      stopRec.disabled = true;
-    };
+  rec.onresult = (event) => {
+    let interim = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const txt = event.results[i][0].transcript;
+      if (event.results[i].isFinal) finalText += txt + " ";
+      else interim += txt;
+    }
+    voiceText.value = (finalText + interim).trim();
+  };
 
-    rec.onend = () => {
-      startRec.disabled = false;
-      stopRec.disabled = true;
-      voiceHint.textContent = "已停止錄音。你可編輯文字後送出。";
-    };
+  startRec.addEventListener("click", () => {
+    try {
+      finalText = voiceText.value ? (voiceText.value.trim() + " ") : "";
+      rec.start();
+    } catch (err) {
+      console.warn(err);
+    }
+  });
 
-    rec.onresult = (event) => {
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const txt = event.results[i][0].transcript;
-        if (event.results[i].isFinal) finalText += txt + " ";
-        else interim += txt;
-      }
-      voiceText.value = (finalText + interim).trim();
-    };
+  stopRec.addEventListener("click", () => {
+    try { rec.stop(); } catch(e) {}
+  });
+}
 
-    startRec.addEventListener("click", () => {
-      try {
-        finalText = voiceText.value ? (voiceText.value.trim() + " ") : "";
-        rec.start();
-      } catch (err) {
-        console.warn(err);
-      }
-    });
+/* ✅ 送信：改為 x-www-form-urlencoded（避免 CORS preflight） */
+sendVoice.addEventListener("click", async () => {
+  const text = (voiceText.value || "").trim();
+  if (!text) { voiceHint.textContent = "內容是空的，請先說話或輸入文字。"; return; }
 
-    stopRec.addEventListener("click", () => {
-      try { rec.stop(); } catch(e) {}
-    });
+  if (!MAIL_SECRET || MAIL_SECRET.includes("CHANGE_ME")) {
+    voiceHint.textContent = "尚未設定 MAIL_SECRET（需與 Apps Script 的 SECRET 一致）。";
+    return;
   }
 
-const form = new URLSearchParams();
-form.set("secret", MAIL_SECRET);
-form.set("text", text);
-form.set("sender", "HIoT Board Voice");
-form.set("page", location.href);
-form.set("ts", new Date().toISOString());
+  sendVoice.disabled = true;
+  voiceHint.textContent = "送出中…";
 
-const resp = await fetch(MAIL_ENDPOINT, {
-  method: "POST",
-  headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-  body: form.toString()
+  try {
+    const form = new URLSearchParams();
+    form.set("secret", MAIL_SECRET);
+    form.set("text", text);
+    form.set("sender", "HIoT Board Voice");
+    form.set("page", location.href);
+    form.set("ts", new Date().toISOString());
+
+    const resp = await fetch(MAIL_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body: form.toString()
+    });
+
+    const result = await resp.json().catch(() => ({}));
+    if (result && result.ok) {
+      voiceHint.textContent = "✅ 已寄出到 jj@tmu.edu.tw";
+    } else {
+      voiceHint.textContent = "❌ 寄送失敗：" + (result.error || "unknown");
+    }
+  } catch (err) {
+    voiceHint.textContent = "❌ 送出錯誤：" + String(err);
+  } finally {
+    sendVoice.disabled = false;
+  }
 });
 
-const result = await resp.json().catch(() => ({}));
+/* =========================================
+   Init UI + MQTT
+========================================= */
+// 預設狀態：上課中
+setStatus("class","上課中","busy");
+setNet(false, "MQTT 未連線");
+setMarquee("等待公告…（可由 MQTT 設定）");
 
-if (result && result.ok) {
-  voiceHint.textContent = "✅ 已寄出到 jj@tmu.edu.tw";
-} else {
-  voiceHint.textContent = "❌ 寄送失敗：" + (result.error || "unknown");
+// Clock
+function tickClock(){
+  const d = new Date();
+  $("clock").textContent =
+    String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
 }
+tickClock();
+setInterval(tickClock, 1000);
+
+// Start marquee animation
+requestAnimationFrame(marqueeLoop);
+
+// MQTT client
+const client = mqtt.connect(CONNECT_URL, {
+  clientId: "hiot-board-" + Math.random().toString(16).slice(2),
+  clean: true,
+  keepalive: 30,
+  reconnectPeriod: 2000,
+  connectTimeout: 10000
+});
+
+client.on("connect", () => {
+  setNet(true, "MQTT 已連線");
+  client.subscribe([STATUS_TOPIC, MARQ_TOPIC], { qos: 0 }, (err) => {
+    if (err) setNet(false, "訂閱失敗：" + err.message);
+  });
+});
+
+client.on("reconnect", () => setNet(false, "重新連線中…"));
+client.on("offline", () => setNet(false, "離線（offline）"));
+client.on("close", () => setNet(false, "連線已關閉"));
+client.on("error", (e) => setNet(false, "錯誤：" + (e?.message || e)));
+
+client.on("message", (topic, message) => {
+  const payload = message.toString("utf-8");
+  if (topic === STATUS_TOPIC){
+    const st = parseStatusPayload(payload);
+    setStatus(st.code, st.text, st.level);
+    return;
+  }
+  if (topic === MARQ_TOPIC){
+    parseMarqueePayload(payload);
+    return;
+  }
+});
+
+window.addEventListener("resize", () => { x = viewport.clientWidth; });
 
 </script>
 </body>
