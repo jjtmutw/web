@@ -140,6 +140,7 @@
     .pill.warn{ background:var(--warn); box-shadow:0 0 0 6px rgba(245,158,11,.14); }
     .pill.busy{ background:var(--busy); box-shadow:0 0 0 6px rgba(239,68,68,.14); }
     .pill.cool{ background:var(--cool); box-shadow:0 0 0 6px rgba(56,189,248,.14); }
+    .pill.gray{ background:var(--gray); box-shadow:0 0 0 6px rgba(148,163,184,.12); }
 
     .statusText{
       font-size:56px;
@@ -202,7 +203,7 @@
     <header>
       <div>
         <div class="labname" id="labName">醫療 AI 與健康 IoT 實驗室</div>
-        <div class="sub">Laboratory Status Board (MQTT)</div>
+        <div class="sub">Laboratory Status Board (MQTT over WSS)</div>
       </div>
       <div class="right">
         <div class="clock" id="clock">--:--</div>
@@ -217,7 +218,7 @@
       <section class="statusCard">
         <div class="label">目前狀態</div>
         <div class="statusLine">
-          <span class="pill" id="statusPill"></span>
+          <span class="pill gray" id="statusPill"></span>
           <span class="badge" id="statusCode">UNKNOWN</span>
         </div>
         <div class="statusText" id="statusText">等待更新</div>
@@ -229,10 +230,10 @@
 
       <aside class="side">
         <div class="box">
-          <div class="label" style="margin-bottom:8px;">MQTT 連線設定（請改成你的）</div>
-          <div class="row"><span>WebSocket URL</span><b id="cfgUrl">ws://broker.emqx.io:1883</b></div>
+          <div class="label" style="margin-bottom:8px;">MQTT 連線設定（已為 HTTPS 頁面改用 WSS）</div>
+          <div class="row"><span>WSS URL</span><b id="cfgUrl">wss://broker.emqx.io:8084/mqtt</b></div>
           <div class="row"><span>Topic</span><b id="cfgTopic">JJ/LAB/status</b></div>
-          <div class="row"><span>Client ID</span><b id="cfgClient">lab-board-001</b></div>
+          <div class="row"><span>Client ID</span><b id="cfgClient">—</b></div>
         </div>
 
         <div class="box">
@@ -256,26 +257,30 @@
   <!-- MQTT.js (Browser) -->
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script>
-    // ==============================
-    // 你需要改的只有這一段
-    // ==============================
+    // =========================================================
+    // ✅ 只要改這裡：實驗室名稱 / topic（必要時可改 broker）
+    // =========================================================
     const CONFIG = {
       labName: "醫療 AI 與健康 IoT 實驗室",
-      wsUrl: "ws://broker.emqx.io:1883",   // 改成你的 MQTT WebSocket 位址
+
+      // ✅ GitHub Pages 是 HTTPS，必須用 WSS（加密 WebSocket）
+      // EMQX public broker 的 WSS 通常為 8084 + /mqtt
+      wsUrl: "wss://broker.emqx.io:8084/mqtt",
+
       topic: "JJ/LAB/status",
-      clientId: "lab-board-001",
-      username: "",   // 若 broker 需要帳密就填
+
+      // ✅ 避免 public broker clientId 撞名被踢：每次隨機一個
+      clientId: "lab-board-" + Math.random().toString(16).slice(2),
+
+      // public broker 通常可留空
+      username: "",
       password: ""
     };
 
-    // ==============================
+    // =========================================================
     // UI helpers
-    // ==============================
+    // =========================================================
     const $ = (id) => document.getElementById(id);
-    $("labName").textContent = CONFIG.labName;
-    $("cfgUrl").textContent = CONFIG.wsUrl;
-    $("cfgTopic").textContent = CONFIG.topic;
-    $("cfgClient").textContent = CONFIG.clientId;
 
     function setNet(connected, text){
       $("netDot").className = "dot " + (connected ? "ok" : "bad");
@@ -294,12 +299,12 @@
     }
 
     function setStatus(code, text, level){
-      $("statusCode").textContent = code.toUpperCase();
-      $("statusText").textContent = text;
+      $("statusCode").textContent = (code || "unknown").toUpperCase();
+      $("statusText").textContent = text || "等待更新";
       $("lastUpdate").textContent = nowStr();
 
-      // level: ok / warn / busy / cool / gray
-      $("statusPill").className = "pill " + (level || "");
+      const lv = level || "gray";
+      $("statusPill").className = "pill " + lv;
     }
 
     function parsePayload(payload){
@@ -323,6 +328,17 @@
       }
     }
 
+    // =========================================================
+    // Init UI
+    // =========================================================
+    $("labName").textContent = CONFIG.labName;
+    $("cfgUrl").textContent = CONFIG.wsUrl;
+    $("cfgTopic").textContent = CONFIG.topic;
+    $("cfgClient").textContent = CONFIG.clientId;
+
+    setStatus("unknown","等待更新","gray");
+    setNet(false,"MQTT 未連線");
+
     // Clock
     function tickClock(){
       const d = new Date();
@@ -333,18 +349,14 @@
     tickClock();
     setInterval(tickClock, 1000);
 
-    // Default status
-    setStatus("unknown","等待更新","gray");
-    setNet(false,"MQTT 未連線");
-
-    // ==============================
-    // MQTT connect
-    // ==============================
+    // =========================================================
+    // MQTT connect (WSS)
+    // =========================================================
     const options = {
       clientId: CONFIG.clientId,
       keepalive: 30,
       reconnectPeriod: 2000,
-      connectTimeout: 10_000,
+      connectTimeout: 10000,
       clean: true
     };
     if(CONFIG.username) options.username = CONFIG.username;
@@ -357,13 +369,17 @@
       client.subscribe(CONFIG.topic, { qos: 0 }, (err) => {
         if(err){
           setNet(false, "訂閱失敗：" + err.message);
+          console.error("Subscribe error:", err);
         }
       });
     });
 
     client.on("reconnect", () => setNet(false, "重新連線中…"));
     client.on("close", () => setNet(false, "MQTT 連線關閉"));
-    client.on("error", (e) => setNet(false, "MQTT 錯誤：" + (e?.message || e)));
+    client.on("error", (e) => {
+      setNet(false, "MQTT 錯誤：" + (e?.message || e));
+      console.error("MQTT error:", e);
+    });
 
     client.on("message", (topic, message) => {
       const payload = message.toString("utf-8");
