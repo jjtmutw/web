@@ -733,11 +733,21 @@
         ts: new Date().toISOString()
       };
 
+      const form = new URLSearchParams();
+      form.set("secret", MAIL_SECRET);
+      form.set("text", text);
+      form.set("sender", "HIoT Board Voice");
+      form.set("page", location.href);
+      form.set("ts", new Date().toISOString());
+
       const resp = await fetch(MAIL_ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        body: form.toString()
       });
+
+const data = await resp.json().catch(() => ({}));
+
 
       const data = await resp.json().catch(() => ({}));
       if (data && data.ok) {
