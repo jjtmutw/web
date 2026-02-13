@@ -230,7 +230,7 @@
       <aside class="side">
         <div class="box">
           <div class="label" style="margin-bottom:8px;">MQTT 連線設定（請改成你的）</div>
-          <div class="row"><span>WebSocket URL</span><b id="cfgUrl">ws://broker.emqx.io:8083/mqtt</b></div>
+          <div class="row"><span>WebSocket URL</span><b id="cfgUrl">ws://broker.emqx.io:1883</b></div>
           <div class="row"><span>Topic</span><b id="cfgTopic">JJ/LAB/status</b></div>
           <div class="row"><span>Client ID</span><b id="cfgClient">lab-board-001</b></div>
         </div>
@@ -261,7 +261,7 @@
     // ==============================
     const CONFIG = {
       labName: "醫療 AI 與健康 IoT 實驗室",
-      wsUrl: "ws://broker.emqx.io:8083/mqtt",   // 改成你的 MQTT WebSocket 位址
+      wsUrl: "ws://broker.emqx.io:1883",   // 改成你的 MQTT WebSocket 位址
       topic: "JJ/LAB/status",
       clientId: "lab-board-001",
       username: "",   // 若 broker 需要帳密就填
