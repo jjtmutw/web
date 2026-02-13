@@ -456,7 +456,7 @@ const STATUS_TOPIC  = "JJ/LAB/status";
 const MARQ_TOPIC    = "JJ/LAB/marquee";
 
 // Apps Script Web App URL（你提供的）
-const MAIL_ENDPOINT = "https://script.google.com/macros/s/AKfycbwHM5AROpfJpd2DCIKBFjYQ_w89oiwaohsMum9_-Kuhgb1ZuMN9aFhks2EWm8wvORCo/exec";
+const MAIL_ENDPOINT = "https://script.google.com/macros/s/AKfycbyqUKrgDI6KoLEena82SA1oFEoZsj-RVnccpML_ko1MBuM_iUO9-SgSNloT4K1ltfY2/exec";
 
 // ⚠️ 必須與你的 Apps Script Code.gs 的 SECRET 完全一致
 const MAIL_SECRET   = "dfdfshfddsfhsdhsdsdsdshfdhgfdsG";
@@ -687,21 +687,34 @@ sendVoice.addEventListener("click", async () => {
     const resp = await fetch(MAIL_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-      body: form.toString()
+      body: form.toString(),
+      redirect: "follow"
     });
 
-    const result = await resp.json().catch(() => ({}));
-    if (result && result.ok) {
+    const raw = await resp.text(); // ✅ 先當文字讀
+    let obj = null;
+
+    // ✅ 再嘗試 parse JSON
+    try { obj = JSON.parse(raw); } catch(e) {}
+
+    if (obj && obj.ok) {
       voiceHint.textContent = "✅ 已寄出到 jj@tmu.edu.tw";
+    } else if (obj && obj.error) {
+      voiceHint.textContent = "❌ 寄送失敗：" + obj.error;
     } else {
-      voiceHint.textContent = "❌ 寄送失敗：" + (result.error || "unknown");
+      // 非 JSON：把前 160 字顯示出來
+      const preview = raw.replace(/\s+/g, " ").slice(0, 160);
+      voiceHint.textContent = `❌ 寄送失敗：回傳非JSON（HTTP ${resp.status}）: ${preview}`;
+      console.log("Apps Script raw response:", raw);
     }
+
   } catch (err) {
     voiceHint.textContent = "❌ 送出錯誤：" + String(err);
   } finally {
     sendVoice.disabled = false;
   }
 });
+
 
 /* =========================================
    Init UI + MQTT
