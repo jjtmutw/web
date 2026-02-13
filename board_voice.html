@@ -710,43 +710,27 @@
     });
   }
 
-  sendVoice.addEventListener("click", async () => {
-    const text = (voiceText.value || "").trim();
-    if (!text) { voiceHint.textContent = "內容是空的，請先說話或輸入文字。"; return; }
-    if (!MAIL_SECRET || MAIL_SECRET.includes("CHANGE_ME")) {
-      voiceHint.textContent = "尚未設定 MAIL_SECRET（需與 Apps Script 的 SECRET 一致）。";
-      return;
-    }
+const form = new URLSearchParams();
+form.set("secret", MAIL_SECRET);
+form.set("text", text);
+form.set("sender", "HIoT Board Voice");
+form.set("page", location.href);
+form.set("ts", new Date().toISOString());
 
-    sendVoice.disabled = true;
-    voiceHint.textContent = "送出中…";
+const resp = await fetch(MAIL_ENDPOINT, {
+  method: "POST",
+  headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+  body: form.toString()
+});
 
-    try {
-      const form = new URLSearchParams();
-      form.set("secret", MAIL_SECRET);
-      form.set("text", text);
-      form.set("sender", "HIoT Board Voice");
-      form.set("page", location.href);
-      form.set("ts", new Date().toISOString());
+const result = await resp.json().catch(() => ({}));
 
-      const resp = await fetch(MAIL_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-        body: form.toString()
-      });
+if (result && result.ok) {
+  voiceHint.textContent = "✅ 已寄出到 jj@tmu.edu.tw";
+} else {
+  voiceHint.textContent = "❌ 寄送失敗：" + (result.error || "unknown");
+}
 
-      const data = await resp.json().catch(() => ({}));
-      if (data && data.ok) {
-        voiceHint.textContent = "✅ 已寄出到 jj@tmu.edu.tw";
-      } else {
-        voiceHint.textContent = "❌ 寄送失敗：" + (data.error || "unknown");
-      }
-    } catch (err) {
-      voiceHint.textContent = "❌ 送出錯誤：" + String(err);
-    } finally {
-      sendVoice.disabled = false;
-    }
-  });
 </script>
 </body>
 </html>
