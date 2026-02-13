@@ -8,7 +8,6 @@
 <style>
   :root{
     --bg:#0b1220;
-    --card:#121b2e;
     --text:#e8eefc;
     --muted:#a9b6d6;
 
@@ -44,7 +43,7 @@
     background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
   }
 
-  /* ===== White Banner ===== */
+  /* White Banner */
   .banner{
     background:#fff;
     height:86px;
@@ -105,10 +104,11 @@
   .dot.ok{ background:var(--ok); box-shadow:0 0 0 4px rgba(34,197,94,.18); }
   .dot.bad{ background:var(--busy); box-shadow:0 0 0 4px rgba(239,68,68,.18); }
 
+  /* ✅ 左右 3:1 */
   main{
     padding:18px 28px 16px;
     display:grid;
-    grid-template-columns: 1.70fr .30fr;
+    grid-template-columns: 3fr 1fr;
     gap:16px;
   }
 
@@ -202,7 +202,7 @@
     display:block;
   }
 
-  /* ===== Marquee (Ticker) ===== */
+  /* Marquee */
   .marqueeBar{
     margin: 0 28px 16px;
     border-radius:16px;
@@ -237,7 +237,6 @@
     align-items:center;
   }
 
-  /* 跑馬燈內容：用 translateX 做動畫 */
   .marqueeTrack{
     white-space:nowrap;
     will-change: transform;
@@ -275,7 +274,6 @@
 <body>
 <div class="board">
 
-  <!-- White Banner -->
   <div class="banner">
     <img src="tmutitle.png" alt="TMU" onerror="this.style.display='none'">
     <img src="comlogo.png" alt="COM" onerror="this.style.display='none'">
@@ -300,10 +298,10 @@
     <section class="statusCard">
       <div class="statusBody">
         <div class="statusLine">
-          <span class="pill gray" id="statusPill"></span>
-          <span class="badge" id="statusCode">UNKNOWN</span>
+          <span class="pill busy" id="statusPill"></span>
+          <span class="badge" id="statusCode">CLASS</span>
         </div>
-        <div class="statusText" id="statusText">等待更新</div>
+        <div class="statusText" id="statusText">上課中</div>
       </div>
     </section>
 
@@ -315,7 +313,6 @@
     </aside>
   </main>
 
-  <!-- ✅ 跑馬燈公告（MQTT 控制） -->
   <div class="marqueeBar">
     <div class="marqueeLabel">公告</div>
     <div class="marqueeViewport" id="marqueeViewport">
@@ -334,10 +331,7 @@
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
-  // ==========================
-  // MQTT 設定
-  // ==========================
-  const CONNECT_URL   = "wss://broker.emqx.io:8084/mqtt"; // HTTPS頁面必須 WSS + /mqtt
+  const CONNECT_URL   = "wss://broker.emqx.io:8084/mqtt";
   const STATUS_TOPIC  = "JJ/LAB/status";
   const MARQ_TOPIC    = "JJ/LAB/marquee";
 
@@ -366,9 +360,9 @@
     $("statusPill").className = "pill " + (level || "gray");
   }
 
-  // ==========================
-  // 狀態：中英都吃 + 休假
-  // ==========================
+  // ✅ 預設狀態固定為「上課中」
+  setStatus("class","上課中","busy");
+
   function parseStatusPayload(payload){
     const raw = (payload || "").trim();
     const low = raw.toLowerCase();
@@ -403,11 +397,8 @@
     }
   }
 
-  // ==========================
-  // 跑馬燈：動畫引擎（可調速度/暫停）
-  // ==========================
-  let marqueeText = "等待公告…（可由 MQTT 設定）";
-  let marqueeSpeed = 90; // px/sec
+  // Marquee engine
+  let marqueeSpeed = 90;
   let marqueePaused = false;
 
   const viewport = $("marqueeViewport");
@@ -417,9 +408,8 @@
   let lastT = performance.now();
 
   function setMarquee(text){
-    marqueeText = (text || "").trim() || "（空白公告）";
-    track.textContent = marqueeText;
-    // reset
+    const t = (text || "").trim() || "（空白公告）";
+    track.textContent = t;
     x = viewport.clientWidth;
     lastT = performance.now();
   }
@@ -427,7 +417,7 @@
   function setMarqueeSpeed(pxPerSec){
     const v = Number(pxPerSec);
     if (!Number.isFinite(v)) return;
-    marqueeSpeed = Math.max(20, Math.min(260, v)); // 限制範圍
+    marqueeSpeed = Math.max(20, Math.min(260, v));
   }
 
   function marqueeLoop(t){
@@ -436,52 +426,31 @@
 
     if (!marqueePaused){
       x -= marqueeSpeed * dt;
-
-      const trackWidth = track.scrollWidth;
-      if (x < -trackWidth) x = viewport.clientWidth;
-
+      const w = track.scrollWidth;
+      if (x < -w) x = viewport.clientWidth;
       track.style.transform = `translateX(${x}px)`;
     }
-
     requestAnimationFrame(marqueeLoop);
   }
   requestAnimationFrame(marqueeLoop);
 
-  // ==========================
-  // 解析跑馬燈 MQTT payload
-  // 支援：
-  // 1) 直接文字： "今日 15:00 會議"
-  // 2) speed=120; 文字...
-  // 3) pause / play
-  // ==========================
   function parseMarqueePayload(payload){
     const raw = (payload || "").trim();
     const low = raw.toLowerCase();
 
-    if (low === "pause" || raw === "暫停"){
-      marqueePaused = true;
-      return;
-    }
-    if (low === "play" || raw === "播放" || raw === "開始"){
-      marqueePaused = false;
-      return;
-    }
+    if (low === "pause" || raw === "暫停"){ marqueePaused = true; return; }
+    if (low === "play" || raw === "播放" || raw === "開始"){ marqueePaused = false; return; }
 
-    // speed=90;xxx
     const m = raw.match(/^speed\s*=\s*(\d+)\s*;\s*(.*)$/i);
     if (m){
       setMarqueeSpeed(parseInt(m[1], 10));
       setMarquee(m[2]);
       return;
     }
-
-    // 直接公告
     setMarquee(raw);
   }
 
-  // ==========================
   // Clock
-  // ==========================
   function tickClock(){
     const d = new Date();
     $("clock").textContent =
@@ -491,13 +460,10 @@
   setInterval(tickClock, 1000);
 
   // Defaults
-  setStatus("unknown","等待更新","gray");
   setNet(false, "MQTT 未連線");
   setMarquee("等待公告…（可由 MQTT 設定）");
 
-  // ==========================
-  // MQTT connect (顯示連線狀態)
-  // ==========================
+  // MQTT
   const client = mqtt.connect(CONNECT_URL, {
     clientId: "hiot-board-" + Math.random().toString(16).slice(2),
     clean: true,
@@ -533,10 +499,7 @@
     }
   });
 
-  // 若視窗大小變更，讓跑馬燈從右邊重新進場更自然
-  window.addEventListener("resize", () => {
-    x = viewport.clientWidth;
-  });
+  window.addEventListener("resize", () => { x = viewport.clientWidth; });
 </script>
 </body>
 </html>
