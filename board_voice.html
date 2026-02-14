@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>HIoT 實驗室電子布告牌（最終版・RWD精簡高度）</title>
+<title>HIoT 實驗室電子布告牌（pjj / board1）</title>
 
 <style>
   :root{
@@ -77,6 +77,28 @@
     margin-top:6px;
     color:var(--muted);
     font-size:14px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing:.3px;
+  }
+  .chip code{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 12px;
+    color: var(--text);
   }
 
   .rightTop{
@@ -113,7 +135,7 @@
     align-items:stretch;
   }
 
-  /* Left: Status (reduced height) */
+  /* Left: Status */
   .statusCard{
     position: relative;
     background: rgba(18,27,46,.82);
@@ -132,7 +154,7 @@
     justify-content:center;
     align-items:center;
     gap:14px;
-    padding-bottom: 54px;
+    padding-bottom: 54px; /* leave space for 🎤 */
   }
 
   .statusLine{
@@ -174,7 +196,7 @@
     margin:0;
   }
 
-  /* Right: Photo (smaller) */
+  /* Right: Photo */
   .photoCard{
     background: rgba(18,27,46,.70);
     border:1px solid rgba(255,255,255,.10);
@@ -206,7 +228,7 @@
     display:block;
   }
 
-  /* Marquee (slimmer) */
+  /* Marquee */
   .marqueeBar{
     margin: 0 22px 12px;
     border-radius:14px;
@@ -365,9 +387,8 @@
     }
     .net{ justify-content:flex-start; }
 
-    /* ✅ 平板仍維持左右欄（接近3:1） */
     main{
-      grid-template-columns: 2.8fr 1fr;
+      grid-template-columns: 2.8fr 1fr; /* tablet landscape keep 3:1-ish */
       gap: 10px;
     }
     .statusCard{ min-height: 240px; }
@@ -376,7 +397,7 @@
   }
 
   @media (max-width: 700px){
-    main{ grid-template-columns: 1fr; } /* ✅ 手機直向才改單欄 */
+    main{ grid-template-columns: 1fr; } /* phone portrait */
     .photoWrap{ min-height: 190px; }
   }
 
@@ -423,7 +444,11 @@
   <header>
     <div>
       <div class="labname">健康物聯網 HIoT 實驗室</div>
-      <div class="sub">Laboratory Status Board (MQTT over WSS)</div>
+      <div class="sub">
+        <span>Laboratory Status Board (MQTT over WSS)</span>
+        <span class="chip">裝置：<code id="deviceName">board1</code></span>
+        <span class="chip">Topic：<code id="baseTopic">JJ/pjj/board1</code></span>
+      </div>
     </div>
 
     <div class="rightTop">
@@ -472,7 +497,7 @@
 
 <div id="voiceModal" class="voiceModal" aria-hidden="true">
   <div class="voicePanel" role="dialog" aria-modal="true" aria-label="語音留言">
-    <div class="voiceTitle">語音留言 → 寄到 jj@tmu.edu.tw</div>
+    <div class="voiceTitle">語音留言 → 寄到 jjtmutw@gmial.com</div>
 
     <div class="voiceRow">
       <button id="startRec" class="vbtn">開始錄音</button>
@@ -495,14 +520,37 @@
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
-const CONNECT_URL   = "wss://broker.emqx.io:8084/mqtt";
-const STATUS_TOPIC  = "JJ/LAB/status";
-const MARQ_TOPIC    = "JJ/LAB/marquee";
+/* ==========================
+   DEVICE / USER CONFIG
+========================== */
+const USER_NAME    = "pjj";
+const DEVICE_NAME  = "board1";   // e.g. board1, board2...
+const BASE_TOPIC   = `JJ/${USER_NAME}/${DEVICE_NAME}`;
 
-const MAIL_ENDPOINT = "https://script.google.com/macros/s/AKfycbyRA4B9SbZu9YFpan1Xilgv8AktHONW1COaz26jh6TcTpwKNyZaYVXtO2HJvdtwEPA/exec";
-const MAIL_SECRET   = "dfdfshfddsfhsdhsdsdsdshfdhgfdsG";
+// Topics
+const STATUS_TOPIC = `${BASE_TOPIC}/status`;
+const MARQ_TOPIC   = `${BASE_TOPIC}/marquee`;
 
+// MQTT (EMQX public broker)
+const CONNECT_URL  = "wss://broker.emqx.io:8084/mqtt";
+
+/* ==========================
+   Email / Apps Script
+   - 前端無法「直接指定收件人」(安全限制)
+   - 你要改收件人：請到 Apps Script 內改 TO_EMAIL
+========================== */
+const MAIL_TO_DISPLAY = "jjtmutw@gmial.com"; // 只用來顯示在UI
+const MAIL_ENDPOINT   = "https://script.google.com/macros/s/AKfycbwHM5AROpfJpd2DCIKBFjYQ_w89oiwaohsMum9_-Kuhgb1ZuMN9aFhks2EWm8wvORCo/exec";
+const MAIL_SECRET     = "CHANGE_ME_TO_A_LONG_RANDOM_STRING";
+
+/* ==========================
+   Helpers
+========================== */
 const $ = (id) => document.getElementById(id);
+
+$("deviceName").textContent = DEVICE_NAME;
+$("baseTopic").textContent  = BASE_TOPIC;
+document.title = `HIoT 實驗室電子布告牌（${USER_NAME} / ${DEVICE_NAME}）`;
 
 function setNet(ok, text){
   $("netDot").className = "dot " + (ok ? "ok" : "bad");
@@ -527,6 +575,10 @@ function setStatus(code, text, level){
   $("statusPill").className = "pill " + (level || "gray");
 }
 
+/* ==========================
+   Status parsing
+   payload examples: out / class / experiment / meeting / break / vacation / custom:臨時離開
+========================== */
 function parseStatusPayload(payload){
   const raw = (payload || "").trim();
   const low = raw.toLowerCase();
@@ -561,7 +613,9 @@ function parseStatusPayload(payload){
   }
 }
 
-/* Marquee */
+/* ==========================
+   Marquee engine
+========================== */
 let marqueeSpeed = 90;
 let marqueePaused = false;
 
@@ -613,8 +667,11 @@ function parseMarqueePayload(payload){
   setMarquee(raw);
 }
 
-/* Voice */
+/* ==========================
+   Voice UI + Speech Recognition + Send mail
+========================== */
 const boardRoot = document.getElementById("boardRoot");
+
 const voiceBtn   = $("voiceBtn");
 const voiceModal = $("voiceModal");
 const startRec   = $("startRec");
@@ -624,6 +681,9 @@ const closeVoice = $("closeVoice");
 const sendVoice  = $("sendVoice");
 const voiceText  = $("voiceText");
 const voiceHint  = $("voiceHint");
+
+// update display email
+document.querySelector(".voiceTitle").textContent = `語音留言 → 寄到 ${MAIL_TO_DISPLAY}`;
 
 function openVoice(){
   if (boardRoot) boardRoot.inert = true;
@@ -701,6 +761,7 @@ if (!SpeechRecognition) {
   });
 }
 
+/* ✅ Send: no JSON parsing (avoid "not valid JSON") */
 sendVoice.addEventListener("click", async () => {
   const text = (voiceText.value || "").trim();
   if (!text) { voiceHint.textContent = "內容是空的，請先說話或輸入文字。"; return; }
@@ -717,9 +778,11 @@ sendVoice.addEventListener("click", async () => {
     const form = new URLSearchParams();
     form.set("secret", MAIL_SECRET);
     form.set("text", text);
-    form.set("sender", "HIoT Board Voice");
+    form.set("sender", `HIoT Board Voice (${USER_NAME}/${DEVICE_NAME})`);
     form.set("page", location.href);
     form.set("ts", new Date().toISOString());
+    form.set("user", USER_NAME);
+    form.set("device", DEVICE_NAME);
 
     const resp = await fetch(MAIL_ENDPOINT, {
       method: "POST",
@@ -728,11 +791,10 @@ sendVoice.addEventListener("click", async () => {
       redirect: "follow"
     });
 
-    const raw = await resp.text(); // ✅ 永遠只讀文字
+    const raw = await resp.text();
     console.log("Apps Script raw response:", raw);
 
-    // ✅ 不做 JSON 解析：用 HTTP status + 回傳文字關鍵字判斷
-    const okByStatus = resp.ok; // 200~299
+    const okByStatus = resp.ok;
     const okByText =
       /"ok"\s*:\s*true/i.test(raw) ||
       /\bok\b\s*[:=]\s*true/i.test(raw) ||
@@ -740,9 +802,8 @@ sendVoice.addEventListener("click", async () => {
       /success/i.test(raw);
 
     if (okByStatus && okByText) {
-      voiceHint.textContent = "✅ 已送出（請查收 jj@tmu.edu.tw）";
+      voiceHint.textContent = `✅ 已送出（${USER_NAME}/${DEVICE_NAME}）`;
     } else if (resp.ok) {
-      // 伺服器回 200，但內容不是我們預期的 JSON
       const preview = (raw || "").replace(/\s+/g, " ").slice(0, 180);
       voiceHint.textContent = `⚠️ 已送出（回傳非JSON）：${preview}`;
     } else {
@@ -757,11 +818,12 @@ sendVoice.addEventListener("click", async () => {
   }
 });
 
-
-/* Init */
+/* ==========================
+   Init + MQTT
+========================== */
 setStatus("out","外出中","warn");
 setNet(false, "MQTT 未連線");
-setMarquee("祝大家身體健康,萬事如意!!"); // ✅ 預設公告
+setMarquee("祝大家身體健康,萬事如意!!");
 
 function tickClock(){
   const d = new Date();
@@ -773,8 +835,9 @@ setInterval(tickClock, 1000);
 
 requestAnimationFrame(marqueeLoop);
 
+// MQTT client
 const client = mqtt.connect(CONNECT_URL, {
-  clientId: "hiot-board-" + Math.random().toString(16).slice(2),
+  clientId: `${USER_NAME}-${DEVICE_NAME}-` + Math.random().toString(16).slice(2),
   clean: true,
   keepalive: 30,
   reconnectPeriod: 2000,
