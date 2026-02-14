@@ -43,7 +43,6 @@
     background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
   }
 
-  /* White Banner */
   .banner{
     background:#fff;
     height:72px;
@@ -378,7 +377,7 @@
     .net{ justify-content:flex-start; }
 
     main{
-      grid-template-columns: 2.8fr 1fr;
+      grid-template-columns: 2.8fr 1fr; /* keep 2 columns on tablet landscape */
       gap: 10px;
     }
     .statusCard{ min-height: 240px; }
@@ -387,7 +386,7 @@
   }
 
   @media (max-width: 700px){
-    main{ grid-template-columns: 1fr; }
+    main{ grid-template-columns: 1fr; } /* phone portrait */
     .photoWrap{ min-height: 190px; }
   }
 
@@ -487,7 +486,7 @@
 
 <div id="voiceModal" class="voiceModal" aria-hidden="true">
   <div class="voicePanel" role="dialog" aria-modal="true" aria-label="語音留言">
-    <div class="voiceTitle" id="voiceTitle">語音留言 → 寄到 jjtmutw@gmial.com</div>
+    <div class="voiceTitle" id="voiceTitle">語音留言 → 寄到 jjtmutw@gmail.com</div>
 
     <div class="voiceRow">
       <button id="startRec" class="vbtn">開始錄音</button>
@@ -517,19 +516,17 @@ const USER_NAME    = "pjj";
 const DEVICE_NAME  = "board1";
 const BASE_TOPIC   = `JJ/${USER_NAME}/${DEVICE_NAME}`;
 
-// Topics
 const STATUS_TOPIC = `${BASE_TOPIC}/status`;
 const MARQ_TOPIC   = `${BASE_TOPIC}/marquee`;
-const NOTE_TOPIC   = `${BASE_TOPIC}/note`;     // ✅ 留言同步發布到 MQTT
+const NOTE_TOPIC   = `${BASE_TOPIC}/note`; // 留言同步發布到 MQTT
 
-// MQTT
 const CONNECT_URL  = "wss://broker.emqx.io:8084/mqtt";
 
 /* ==========================
-   Email / Apps Script (as requested)
+   Email / Apps Script (updated as requested)
 ========================== */
-const MAIL_TO_DISPLAY = "jjtmutw@gmial.com"; // UI only
-const MAIL_ENDPOINT   = "https://script.google.com/macros/s/AKfycbyRA4B9SbZu9YFpan1Xilgv8AktHONW1COaz26jh6TcTpwKNyZaYVXtO2HJvdtwEPA/exec";
+const MAIL_TO_DISPLAY = "jjtmutw@gmail.com"; // UI only
+const MAIL_ENDPOINT   = "https://script.google.com/macros/s/AKfycbwadDFwIiLa65bpor3TYamAbQ1zBxKYEg7ork_G1jrDMLybnpLkD_YSny1LbSChX2o/exec";
 const MAIL_SECRET     = "dfdfshfddsfhsdhsdsdsdshfdhgfdsG";
 
 /* ==========================
@@ -565,9 +562,6 @@ function setStatus(code, text, level){
   $("statusPill").className = "pill " + (level || "gray");
 }
 
-/* ==========================
-   Status parsing
-========================== */
 function parseStatusPayload(payload){
   const raw = (payload || "").trim();
   const low = raw.toLowerCase();
@@ -602,9 +596,7 @@ function parseStatusPayload(payload){
   }
 }
 
-/* ==========================
-   Marquee
-========================== */
+/* Marquee */
 let marqueeSpeed = 90;
 let marqueePaused = false;
 
@@ -657,8 +649,29 @@ function parseMarqueePayload(payload){
 }
 
 /* ==========================
-   Voice UI
+   MQTT client (used also for note publish)
 ========================== */
+setNet(false, "MQTT 未連線");
+const client = mqtt.connect(CONNECT_URL, {
+  clientId: `${USER_NAME}-${DEVICE_NAME}-` + Math.random().toString(16).slice(2),
+  clean: true,
+  keepalive: 30,
+  reconnectPeriod: 2000,
+  connectTimeout: 10000
+});
+
+async function publishNoteToMQTT(message){
+  try{
+    if (!client || !client.connected) return false;
+    client.publish(NOTE_TOPIC, "留言+" + message, { qos: 0, retain: false });
+    return true;
+  }catch(e){
+    console.warn("publish note failed:", e);
+    return false;
+  }
+}
+
+/* Voice UI */
 const boardRoot = document.getElementById("boardRoot");
 
 const voiceBtn   = $("voiceBtn");
@@ -747,39 +760,10 @@ if (!SpeechRecognition) {
   });
 }
 
-/* ==========================
-   MQTT client (used also for note publish)
-========================== */
-setNet(false, "MQTT 未連線");
-const client = mqtt.connect(CONNECT_URL, {
-  clientId: `${USER_NAME}-${DEVICE_NAME}-` + Math.random().toString(16).slice(2),
-  clean: true,
-  keepalive: 30,
-  reconnectPeriod: 2000,
-  connectTimeout: 10000
-});
-
-/* ✅ 送出留言後，同時 publish MQTT：payload = "留言+" + message  */
-async function publishNoteToMQTT(message){
-  try{
-    if (!client || !client.connected) return false;
-    client.publish(NOTE_TOPIC, "留言+" + message, { qos: 0, retain: false });
-    return true;
-  }catch(e){
-    console.warn("publish note failed:", e);
-    return false;
-  }
-}
-
-/* ✅ Send: no JSON parsing (avoid "not valid JSON") */
+/* ✅ Send: no JSON parsing + publish MQTT note */
 sendVoice.addEventListener("click", async () => {
   const text = (voiceText.value || "").trim();
   if (!text) { voiceHint.textContent = "內容是空的，請先說話或輸入文字。"; return; }
-
-  if (!MAIL_SECRET || MAIL_SECRET.includes("CHANGE_ME")) {
-    voiceHint.textContent = "尚未設定 MAIL_SECRET（需與 Apps Script 的 SECRET 一致）。";
-    return;
-  }
 
   sendVoice.disabled = true;
   voiceHint.textContent = "送出中…";
@@ -811,7 +795,6 @@ sendVoice.addEventListener("click", async () => {
       /\bsent\b/i.test(raw) ||
       /success/i.test(raw);
 
-    // ✅ 不論 email 成功與否，都嘗試 publish MQTT 留言
     const mqttOk = await publishNoteToMQTT(text);
 
     if (okByStatus && okByText) {
@@ -825,7 +808,6 @@ sendVoice.addEventListener("click", async () => {
     }
 
   } catch (err) {
-    // 例外也照樣嘗試 publish MQTT
     const mqttOk = await publishNoteToMQTT(text);
     voiceHint.textContent = `❌ Email送出錯誤：${String(err)}；MQTT${mqttOk ? "已發佈" : "未連線"}`;
   } finally {
@@ -833,9 +815,7 @@ sendVoice.addEventListener("click", async () => {
   }
 });
 
-/* ==========================
-   Init UI + MQTT subscriptions
-========================== */
+/* Init UI */
 setStatus("out","外出中","warn");
 setMarquee("祝大家身體健康,萬事如意!!");
 
@@ -849,6 +829,7 @@ setInterval(tickClock, 1000);
 
 requestAnimationFrame(marqueeLoop);
 
+/* MQTT subscriptions */
 client.on("connect", () => {
   setNet(true, "MQTT 已連線");
   client.subscribe([STATUS_TOPIC, MARQ_TOPIC], { qos: 0 }, (err) => {
