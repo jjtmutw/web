@@ -1,140 +1,147 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>HIoT 布告欄控制台（MQTT）</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HIoT 布告欄控制台（Mobile UI）</title>
 
 <style>
   :root{
     --bg:#0b1220;
+    --card: rgba(18,27,46,.86);
+    --line: rgba(255,255,255,.12);
     --text:#e8eefc;
     --muted:#a9b6d6;
-    --card:rgba(18,27,46,.82);
-    --line:rgba(255,255,255,.10);
     --ok:#22c55e;
     --warn:#f59e0b;
     --bad:#ef4444;
+    --btn: rgba(255,255,255,.08);
   }
   *{box-sizing:border-box}
   body{
     margin:0;
-    font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif;
-    background: radial-gradient(1200px 700px at 20% 10%, rgba(96,165,250,.15), transparent 60%),
-                radial-gradient(1000px 600px at 80% 30%, rgba(34,197,94,.10), transparent 60%),
-                var(--bg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC",Arial,sans-serif;
+    background:
+      radial-gradient(900px 520px at 15% 12%, rgba(96,165,250,.16), transparent 60%),
+      radial-gradient(900px 520px at 85% 30%, rgba(34,197,94,.12), transparent 60%),
+      var(--bg);
     color:var(--text);
     min-height:100vh;
     display:flex;
     justify-content:center;
-    padding: clamp(12px, 3vw, 22px);
+    padding:14px;
   }
-
-  .wrap{
-    width:min(980px, 100%);
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-  }
-
-  .top{
-    display:flex;
-    gap:12px;
-    align-items:stretch;
-    flex-wrap:wrap;
-  }
+  .wrap{ width:min(980px,100%); display:flex; flex-direction:column; gap:12px; }
 
   .card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:18px;
-    padding:14px;
-    box-shadow:0 14px 44px rgba(0,0,0,.45);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 12px;
+    box-shadow: 0 16px 52px rgba(0,0,0,.45);
   }
 
-  .title{
-    font-size:22px;
-    font-weight:900;
-    letter-spacing:.4px;
-    margin-bottom:6px;
+  .header{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
   }
-  .sub{ color:var(--muted); font-size:13px; }
-
+  .hTitle{
+    font-size:18px; font-weight:1000; letter-spacing:.3px;
+  }
+  .hSub{ color:var(--muted); font-size:12px; }
   .net{
-    display:flex; align-items:center; gap:10px;
-    margin-top:10px;
-    color:var(--muted);
-    font-size:13px;
+    margin-left:auto;
+    display:flex; align-items:center; gap:8px;
+    color:var(--muted); font-size:12px;
   }
-  .dot{
-    width:10px;height:10px;border-radius:999px;background:#94a3b8;
-    box-shadow:0 0 0 4px rgba(148,163,184,.14);
-  }
-  .dot.ok{ background:var(--ok); box-shadow:0 0 0 4px rgba(34,197,94,.16); }
-  .dot.bad{ background:var(--bad); box-shadow:0 0 0 4px rgba(239,68,68,.16); }
+  .dot{ width:10px;height:10px;border-radius:999px;background:#94a3b8; box-shadow:0 0 0 4px rgba(148,163,184,.12); }
+  .dot.ok{ background:var(--ok); box-shadow:0 0 0 4px rgba(34,197,94,.14); }
+  .dot.bad{ background:var(--bad); box-shadow:0 0 0 4px rgba(239,68,68,.14); }
 
-  .grid{
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap:12px;
-  }
-
-  label{ display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
+  label{ display:block; color:var(--muted); font-size:12px; margin:10px 0 6px; }
   input, select, textarea{
     width:100%;
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,.14);
-    background:rgba(255,255,255,.06);
-    color:var(--text);
-    padding:10px 12px;
-    font-size:14px;
-    outline:none;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    padding: 11px 12px;
+    font-size: 15px;
+    outline: none;
   }
-  textarea{ min-height:110px; resize:vertical; }
+  textarea{ min-height: 92px; resize: vertical; }
 
-  .row{
-    display:flex; gap:10px; flex-wrap:wrap;
-  }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .col{ flex:1 1 220px; }
+
   .btn{
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,.16);
-    background:rgba(255,255,255,.06);
-    color:var(--text);
-    padding:10px 12px;
-    font-weight:900;
+    border-radius: 14px;
+    border:1px solid rgba(255,255,255,.14);
+    background: var(--btn);
+    color: var(--text);
+    padding: 12px 12px;
+    font-weight: 1000;
     cursor:pointer;
+    user-select:none;
+    min-height: 46px;
   }
-  .btn.primary{
-    background: rgba(34,197,94,.18);
-    border-color: rgba(34,197,94,.35);
-  }
-  .btn.warn{
-    background: rgba(245,158,11,.18);
-    border-color: rgba(245,158,11,.35);
-  }
+  .btn.primary{ background: rgba(34,197,94,.18); border-color: rgba(34,197,94,.35); }
+  .btn.warn{ background: rgba(245,158,11,.18); border-color: rgba(245,158,11,.35); }
+  .btn.ghost{ background: transparent; }
   .btn:disabled{ opacity:.45; cursor:not-allowed; }
 
-  .mono{
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size:12px;
-    color:var(--text);
+  .statusGrid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:10px;
+    margin-top:10px;
   }
+  .sbtn{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    align-items:flex-start;
+    justify-content:center;
+    padding: 14px 12px;
+    border-radius: 16px;
+    border:1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    cursor:pointer;
+    min-height: 64px;
+  }
+  .sbtn b{ font-size:16px; letter-spacing:.3px; }
+  .sbtn span{ font-size:12px; color:var(--muted); }
 
+  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New",monospace; font-size:12px; }
+  .hint{ color:var(--muted); font-size:12px; margin-top:8px; line-height:1.5; }
+
+  details{
+    border:1px solid rgba(255,255,255,.10);
+    border-radius: 14px;
+    background: rgba(0,0,0,.18);
+    overflow:hidden;
+  }
+  summary{
+    cursor:pointer;
+    padding: 10px 12px;
+    font-weight: 1000;
+    list-style:none;
+  }
+  summary::-webkit-details-marker{ display:none; }
   .log{
-    background: rgba(0,0,0,.25);
-    border:1px solid rgba(255,255,255,.08);
-    border-radius:14px;
-    padding:10px;
-    height:180px;
+    padding: 10px 12px;
+    border-top:1px solid rgba(255,255,255,.08);
+    max-height: 220px;
     overflow:auto;
-    font-size:12px;
-    color:#dbe7ff;
-    line-height:1.45;
     white-space:pre-wrap;
+    font-size:12px;
+    line-height:1.45;
+    color:#dbe7ff;
   }
 
-  @media (max-width: 820px){
-    .grid{ grid-template-columns: 1fr; }
+  @media (min-width: 860px){
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .statusGrid{ grid-template-columns: 1fr 1fr 1fr; }
   }
 </style>
 </head>
@@ -143,102 +150,110 @@
 <div class="wrap">
 
   <div class="card">
-    <div class="title">HIoT 布告欄控制台</div>
-    <div class="sub">Static Web Publisher → MQTT (WSS) / broker.emqx.io</div>
-    <div class="net">
-      <span id="netDot" class="dot"></span>
-      <span id="netText">未連線</span>
-      <span style="margin-left:auto" class="mono" id="connectUrl">wss://broker.emqx.io:8084/mqtt</span>
+    <div class="header">
+      <div>
+        <div class="hTitle">HIoT 布告欄控制台</div>
+        <div class="hSub">Mobile-first UI ・Publish to MQTT (WSS) ・支援 URL 參數</div>
+      </div>
+      <div class="net">
+        <span id="netDot" class="dot"></span>
+        <span id="netText">未連線</span>
+      </div>
+    </div>
+
+    <label>MQTT WSS URL</label>
+    <input id="mqttUrl" value="wss://broker.emqx.io:8084/mqtt" placeholder="例如：wss://broker.emqx.io:8084/mqtt">
+
+    <div class="row">
+      <div class="col">
+        <label>User</label>
+        <input id="userName" value="pjj" placeholder="例如：pjj">
+      </div>
+      <div class="col">
+        <label>Board（下拉選單）</label>
+        <select id="boardSelect"></select>
+      </div>
+    </div>
+
+    <label>Base Topic</label>
+    <input id="baseTopic" class="mono" readonly>
+
+    <div class="row" style="margin-top:10px;">
+      <button id="btnConnect" class="btn primary" style="flex:1;">連線 MQTT</button>
+      <button id="btnDisconnect" class="btn" style="flex:1;" disabled>中斷</button>
+    </div>
+
+    <div class="hint">
+      狀態 Topic：<span class="mono" id="statusTopicTxt"></span><br>
+      跑馬燈 Topic：<span class="mono" id="marqTopicTxt"></span><br>
+      URL 參數：<span class="mono">?user=pjj&board=board3&mqtt=wss://broker.emqx.io:8084/mqtt</span>
     </div>
   </div>
 
-  <div class="grid">
+  <div class="grid2">
     <div class="card">
-      <div class="title" style="font-size:18px;">目標布告欄</div>
-      <div class="sub">設定 user / board，Topic 會自動組合</div>
+      <div class="hTitle" style="font-size:16px;">狀態（手機大按鈕）</div>
+      <div class="hSub">一鍵送出 status payload</div>
 
+      <div class="statusGrid">
+        <button class="sbtn" data-status="out"><b>外出中</b><span>payload: out</span></button>
+        <button class="sbtn" data-status="class"><b>上課中</b><span>payload: class</span></button>
+        <button class="sbtn" data-status="experiment"><b>實驗中</b><span>payload: experiment</span></button>
+        <button class="sbtn" data-status="meeting"><b>開會中</b><span>payload: meeting</span></button>
+        <button class="sbtn" data-status="break"><b>休息中</b><span>payload: break</span></button>
+        <button class="sbtn" data-status="vacation"><b>休假中</b><span>payload: vacation</span></button>
+      </div>
+
+      <label>自訂狀態（會送出 custom:xxx）</label>
       <div class="row">
-        <div style="flex:1 1 220px;">
-          <label>使用者 user</label>
-          <input id="userName" value="pjj" placeholder="例如：pjj">
-        </div>
-        <div style="flex:1 1 220px;">
-          <label>裝置 board</label>
-          <input id="boardName" value="board1" placeholder="例如：board1">
-        </div>
+        <input id="customStatus" placeholder="例如：臨時離開" style="flex:1;">
+        <button id="btnSendCustom" class="btn warn" style="flex:0 0 120px;">送出</button>
       </div>
 
-      <label>Base Topic</label>
-      <input id="baseTopic" class="mono" readonly value="JJ/pjj/board1">
-
-      <div class="row" style="margin-top:10px;">
-        <button id="btnConnect" class="btn primary">連線 MQTT</button>
-        <button id="btnDisconnect" class="btn" disabled>中斷</button>
-      </div>
-
-      <div class="sub" style="margin-top:10px;">
-        狀態 Topic：<span class="mono" id="statusTopicTxt"></span><br/>
-        跑馬燈 Topic：<span class="mono" id="marqTopicTxt"></span>
+      <label>手動狀態 payload（可直接輸入 out / class / custom:...）</label>
+      <div class="row">
+        <input id="statusPayload" placeholder="例如：custom:訪客來訪" style="flex:1;">
+        <button id="btnSendStatus" class="btn primary" style="flex:0 0 120px;">送出</button>
       </div>
     </div>
 
     <div class="card">
-      <div class="title" style="font-size:18px;">快速狀態</div>
-      <div class="sub">一鍵送出常用狀態</div>
-
-      <div class="row" style="margin-top:10px;">
-        <button class="btn" data-status="out">外出中 (out)</button>
-        <button class="btn" data-status="class">上課中 (class)</button>
-        <button class="btn" data-status="experiment">實驗中 (experiment)</button>
-        <button class="btn" data-status="meeting">開會中 (meeting)</button>
-        <button class="btn" data-status="break">休息中 (break)</button>
-        <button class="btn" data-status="vacation">休假中 (vacation)</button>
-      </div>
-
-      <label style="margin-top:12px;">自訂狀態（custom:...）</label>
-      <div class="row">
-        <input id="customStatus" placeholder="例如：臨時離開（會送出 custom:臨時離開）" />
-        <button id="btnSendCustom" class="btn warn">送出自訂</button>
-      </div>
-
-      <label style="margin-top:12px;">狀態 payload（可手動）</label>
-      <div class="row">
-        <input id="statusPayload" placeholder="out / class / custom:臨時離開 ..." />
-        <button id="btnSendStatus" class="btn primary">送出狀態</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="title" style="font-size:18px;">跑馬燈公告</div>
-      <div class="sub">直接送到 marquee topic（支援 speed=120;內容 / pause / play）</div>
+      <div class="hTitle" style="font-size:16px;">跑馬燈公告</div>
+      <div class="hSub">送出到 marquee topic（支援 speed / pause / play）</div>
 
       <label>公告內容</label>
-      <textarea id="marqText" placeholder="例如：祝大家身體健康,萬事如意!!"></textarea>
+      <textarea id="marqText">祝大家身體健康,萬事如意!!</textarea>
 
       <div class="row" style="margin-top:10px;">
-        <button id="btnSendMarq" class="btn primary">送出公告</button>
-        <button id="btnPauseMarq" class="btn">pause</button>
-        <button id="btnPlayMarq" class="btn">play</button>
+        <button id="btnSendMarq" class="btn primary" style="flex:1;">送出公告</button>
       </div>
 
-      <div class="sub" style="margin-top:10px;">
-        範例：<span class="mono">speed=120;本週三 15:00 例會，請準時參加</span>
+      <div class="row" style="margin-top:10px;">
+        <button id="btnPause" class="btn" style="flex:1;">pause</button>
+        <button id="btnPlay" class="btn" style="flex:1;">play</button>
       </div>
-    </div>
 
-    <div class="card">
-      <div class="title" style="font-size:18px;">送出記錄</div>
-      <div class="sub">顯示 publish 的 topic / payload</div>
-      <div id="log" class="log"></div>
+      <label>速度（可選）</label>
+      <div class="row">
+        <input id="speed" placeholder="例如：120（px/sec）" style="flex:1;">
+        <button id="btnSendSpeed" class="btn" style="flex:0 0 140px;">套用速度</button>
+      </div>
+
+      <div class="hint">
+        你也可以直接送：<span class="mono">speed=120;公告內容</span>
+      </div>
     </div>
   </div>
+
+  <details class="card" open>
+    <summary>送出紀錄（Log）</summary>
+    <div id="log" class="log"></div>
+  </details>
+
 </div>
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
-/* ========= MQTT config ========= */
-const CONNECT_URL = "wss://broker.emqx.io:8084/mqtt";
-
 let client = null;
 
 const $ = (id) => document.getElementById(id);
@@ -254,30 +269,101 @@ function setNet(ok, text){
   $("netText").textContent = text;
 }
 
-function getUser(){ return ($("userName").value || "").trim() || "pjj"; }
-function getBoard(){ return ($("boardName").value || "").trim() || "board1"; }
-function getBase(){ return `JJ/${getUser()}/${getBoard()}`; }
-function topicStatus(){ return `${getBase()}/status`; }
-function topicMarq(){ return `${getBase()}/marquee`; }
+/* ===== Board dropdown ===== */
+function buildBoardOptions(){
+  // 你可以在這裡增刪布告牌
+  const boards = ["board1","board2","board3","board4","board5","board6"];
+  const sel = $("boardSelect");
+  sel.innerHTML = "";
+  boards.forEach(b=>{
+    const opt = document.createElement("option");
+    opt.value = b;
+    opt.textContent = b;
+    sel.appendChild(opt);
+  });
+  sel.value = "board1";
+}
+buildBoardOptions();
+
+/* ===== Topics ===== */
+function user(){ return ($("userName").value || "").trim() || "pjj"; }
+function board(){ return ($("boardSelect").value || "").trim() || "board1"; }
+function base(){ return `JJ/${user()}/${board()}`; }
+
+function tStatus(){ return `${base()}/status`; }
+function tMarq(){ return `${base()}/marquee`; }
 
 function refreshTopics(){
-  const base = getBase();
-  $("baseTopic").value = base;
-  $("statusTopicTxt").textContent = topicStatus();
-  $("marqTopicTxt").textContent = topicMarq();
+  $("baseTopic").value = base();
+  $("statusTopicTxt").textContent = tStatus();
+  $("marqTopicTxt").textContent = tMarq();
 }
-refreshTopics();
 
 $("userName").addEventListener("input", refreshTopics);
-$("boardName").addEventListener("input", refreshTopics);
+$("boardSelect").addEventListener("change", refreshTopics);
 
-function connectMQTT(){
+/* ===== URL query parameters =====
+   ?user=pjj&board=board3&mqtt=wss://...
+*/
+(function applyQueryParams(){
+  const params = new URLSearchParams(window.location.search);
+
+  const qUser  = params.get("user");
+  const qBoard = params.get("board");
+  const qMQTT  = params.get("mqtt");
+
+  if (qUser) $("userName").value = decodeURIComponent(qUser);
+
+  if (qBoard) {
+    const b = decodeURIComponent(qBoard);
+    const sel = $("boardSelect");
+    let found = false;
+    [...sel.options].forEach(o => { if (o.value === b) found = true; });
+    if (!found) {
+      const opt = document.createElement("option");
+      opt.value = b;
+      opt.textContent = b;
+      sel.appendChild(opt);
+    }
+    sel.value = b;
+  }
+
+  if (qMQTT) $("mqttUrl").value = decodeURIComponent(qMQTT);
+
+  refreshTopics();
+})();
+refreshTopics();
+
+/* ===== Publish ===== */
+function ensureConnected(){
+  if (!client || !client.connected){
+    alert("MQTT 尚未連線，請先按「連線 MQTT」。");
+    log("⚠️ MQTT 未連線，publish 被阻止");
+    return false;
+  }
+  return true;
+}
+
+function publish(topic, payload){
+  if (!ensureConnected()) return;
+  client.publish(topic, payload, { qos: 0, retain: false });
+  log(`PUB → ${topic}\nPAYLOAD: ${payload}`);
+}
+
+/* ===== Connect / Disconnect ===== */
+$("btnConnect").addEventListener("click", () => {
   if (client && client.connected) return;
 
-  setNet(false, "連線中…");
-  log(`Connecting: ${CONNECT_URL}`);
+  const url = ($("mqttUrl").value || "").trim();
+  if (!url.startsWith("wss://")){
+    alert("請輸入 wss:// 開頭的 MQTT WebSocket URL（避免 Mixed Content）。");
+    return;
+  }
 
-  client = mqtt.connect(CONNECT_URL, {
+  setNet(false, "連線中…");
+  log("Connecting: " + url);
+
+  client = mqtt.connect(url, {
     clientId: "board-control-" + Math.random().toString(16).slice(2),
     clean: true,
     keepalive: 30,
@@ -292,74 +378,57 @@ function connectMQTT(){
     log("Connected ✅");
   });
 
-  client.on("reconnect", () => { setNet(false, "重新連線中…"); });
-  client.on("offline", () => { setNet(false, "離線"); });
-  client.on("close", () => { setNet(false, "已關閉"); });
-  client.on("error", (e) => { setNet(false, "錯誤: " + (e?.message || e)); });
-}
+  client.on("reconnect", () => setNet(false, "重新連線中…"));
+  client.on("offline", () => setNet(false, "離線"));
+  client.on("close", () => setNet(false, "已關閉"));
+  client.on("error", (e) => setNet(false, "錯誤: " + (e?.message || e)));
+});
 
-function disconnectMQTT(){
+$("btnDisconnect").addEventListener("click", () => {
   if (!client) return;
-  try{
-    client.end(true);
-  }catch(e){}
+  try{ client.end(true); }catch(e){}
   client = null;
   setNet(false, "未連線");
   $("btnConnect").disabled = false;
   $("btnDisconnect").disabled = true;
-  log("Disconnected.");
-}
+  log("Disconnected");
+});
 
-$("btnConnect").addEventListener("click", connectMQTT);
-$("btnDisconnect").addEventListener("click", disconnectMQTT);
-
-function ensureConnected(){
-  if (!client || !client.connected){
-    log("⚠️ MQTT 尚未連線");
-    alert("MQTT 尚未連線，請先按「連線 MQTT」。");
-    return false;
-  }
-  return true;
-}
-
-function publish(topic, payload){
-  if (!ensureConnected()) return;
-  client.publish(topic, payload, { qos: 0, retain: false });
-  log(`PUB → ${topic}\nPAYLOAD: ${payload}`);
-}
-
-/* ========= Status buttons ========= */
+/* ===== UI actions ===== */
 document.querySelectorAll("[data-status]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    publish(topicStatus(), btn.dataset.status);
-  });
+  btn.addEventListener("click", () => publish(tStatus(), btn.dataset.status));
 });
 
 $("btnSendCustom").addEventListener("click", () => {
-  const t = ($("customStatus").value || "").trim();
-  if (!t) return;
-  publish(topicStatus(), "custom:" + t);
+  const v = ($("customStatus").value || "").trim();
+  if (!v) return;
+  publish(tStatus(), "custom:" + v);
 });
 
 $("btnSendStatus").addEventListener("click", () => {
-  const p = ($("statusPayload").value || "").trim();
-  if (!p) return;
-  publish(topicStatus(), p);
+  const v = ($("statusPayload").value || "").trim();
+  if (!v) return;
+  publish(tStatus(), v);
 });
 
-/* ========= Marquee ========= */
 $("btnSendMarq").addEventListener("click", () => {
-  const p = ($("marqText").value || "").trim();
-  if (!p) return;
-  publish(topicMarq(), p);
+  const v = ($("marqText").value || "").trim();
+  if (!v) return;
+  publish(tMarq(), v);
 });
-$("btnPauseMarq").addEventListener("click", () => publish(topicMarq(), "pause"));
-$("btnPlayMarq").addEventListener("click", () => publish(topicMarq(), "play"));
 
-/* Convenience: auto-fill marquee default */
-$("marqText").value = "祝大家身體健康,萬事如意!!";
+$("btnPause").addEventListener("click", () => publish(tMarq(), "pause"));
+$("btnPlay").addEventListener("click", () => publish(tMarq(), "play"));
+
+$("btnSendSpeed").addEventListener("click", () => {
+  const sp = ($("speed").value || "").trim();
+  if (!sp) return;
+  const msg = ($("marqText").value || "").trim() || "（空白公告）";
+  publish(tMarq(), `speed=${sp};${msg}`);
+});
+
+/* init */
 setNet(false, "未連線");
-$("connectUrl").textContent = CONNECT_URL;
 </script>
 </body>
 </html>
