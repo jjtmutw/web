@@ -584,7 +584,7 @@ function parseStatusPayload(payload){
   const map = new Map([
     ["out","out"], ["外出","out"], ["外出中","out"],
     ["class","class"], ["上課","class"], ["上課中","class"], ["授課","class"], ["教學中","class"],
-    ["experiment","experiment"], ["實驗","experiment"], ["實驗中","experiment"], ["上班","experiment"], ["上班中","experiment"],
+    ["working","working"], ["實驗","working"], ["實驗中","working"], ["上班","working"], ["上班中","working"],
     ["meeting","meeting"], ["開會","meeting"], ["開會中","meeting"], ["會議","meeting"], ["會議中","meeting"],
     ["break","break"], ["休息","break"], ["休息中","break"],
     ["vacation","vacation"], ["休假","vacation"], ["休假中","vacation"], ["請假","vacation"], ["請假中","vacation"]
@@ -595,7 +595,7 @@ function parseStatusPayload(payload){
   switch(key){
     case "out":        return { code:"out",        text:"外出中", level:"warn" };
     case "class":      return { code:"class",      text:"上課中", level:"busy" };
-    case "experiment": return { code:"experiment", text:"上班中", level:"ok" };   // ✅ 改這裡
+    case "working": return { code:"working", text:"上班中", level:"ok" };   // ✅ 改這裡
     case "meeting":    return { code:"meeting",    text:"開會中", level:"busy" };
     case "break":      return { code:"break",      text:"休息中", level:"cool" };
     case "vacation":   return { code:"vacation",   text:"休假中", level:"vac" };
