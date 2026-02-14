@@ -43,7 +43,7 @@
     background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
   }
 
-  /* White Banner (height reduced) */
+  /* White Banner */
   .banner{
     background:#fff;
     height:72px;
@@ -126,16 +126,14 @@
   .dot.ok{ background:var(--ok); box-shadow:0 0 0 4px rgba(34,197,94,.18); }
   .dot.bad{ background:var(--busy); box-shadow:0 0 0 4px rgba(239,68,68,.18); }
 
-  /* Main layout: keep ~3:1 on desktop */
   main{
     padding:14px 22px 12px;
     display:grid;
-    grid-template-columns: 3fr 1fr;   /* ✅ 盡量維持三比一 */
+    grid-template-columns: 3fr 1fr;
     gap:12px;
     align-items:stretch;
   }
 
-  /* Left: Status */
   .statusCard{
     position: relative;
     background: rgba(18,27,46,.82);
@@ -154,7 +152,7 @@
     justify-content:center;
     align-items:center;
     gap:14px;
-    padding-bottom: 54px; /* leave space for 🎤 */
+    padding-bottom: 54px;
   }
 
   .statusLine{
@@ -196,7 +194,6 @@
     margin:0;
   }
 
-  /* Right: Photo */
   .photoCard{
     background: rgba(18,27,46,.70);
     border:1px solid rgba(255,255,255,.10);
@@ -228,7 +225,6 @@
     display:block;
   }
 
-  /* Marquee */
   .marqueeBar{
     margin: 0 22px 12px;
     border-radius:14px;
@@ -282,7 +278,6 @@
     border-top:1px solid rgba(255,255,255,.08);
   }
 
-  /* 🎤 in 左卡右下 */
   .voiceBtn{
     position: absolute;
     right: 14px;
@@ -301,7 +296,6 @@
   }
   .voiceBtn:hover{ transform: translateY(-1px); }
 
-  /* Modal */
   .voiceModal{
     position: fixed;
     inset: 0;
@@ -367,10 +361,6 @@
     font-size: 12px;
   }
 
-  /* =========================
-     RWD: 平板優先保持左右欄（橫式）
-     - 直到 700px 才改單欄
-  ========================= */
   @media (max-width: 900px){
     header{
       flex-direction: column;
@@ -388,7 +378,7 @@
     .net{ justify-content:flex-start; }
 
     main{
-      grid-template-columns: 2.8fr 1fr; /* tablet landscape keep 3:1-ish */
+      grid-template-columns: 2.8fr 1fr;
       gap: 10px;
     }
     .statusCard{ min-height: 240px; }
@@ -397,7 +387,7 @@
   }
 
   @media (max-width: 700px){
-    main{ grid-template-columns: 1fr; } /* phone portrait */
+    main{ grid-template-columns: 1fr; }
     .photoWrap{ min-height: 190px; }
   }
 
@@ -445,7 +435,7 @@
     <div>
       <div class="labname">健康物聯網 HIoT 實驗室</div>
       <div class="sub">
-        <span>Laboratory Status Board (MQTT over WSS)</span>
+        <span>Laboratory Status Board</span>
         <span class="chip">裝置：<code id="deviceName">board1</code></span>
         <span class="chip">Topic：<code id="baseTopic">JJ/pjj/board1</code></span>
       </div>
@@ -497,7 +487,7 @@
 
 <div id="voiceModal" class="voiceModal" aria-hidden="true">
   <div class="voicePanel" role="dialog" aria-modal="true" aria-label="語音留言">
-    <div class="voiceTitle">語音留言 → 寄到 jjtmutw@gmial.com</div>
+    <div class="voiceTitle" id="voiceTitle">語音留言 → 寄到 jjtmutw@gmial.com</div>
 
     <div class="voiceRow">
       <button id="startRec" class="vbtn">開始錄音</button>
@@ -524,24 +514,23 @@
    DEVICE / USER CONFIG
 ========================== */
 const USER_NAME    = "pjj";
-const DEVICE_NAME  = "board1";   // e.g. board1, board2...
+const DEVICE_NAME  = "board1";
 const BASE_TOPIC   = `JJ/${USER_NAME}/${DEVICE_NAME}`;
 
 // Topics
 const STATUS_TOPIC = `${BASE_TOPIC}/status`;
 const MARQ_TOPIC   = `${BASE_TOPIC}/marquee`;
+const NOTE_TOPIC   = `${BASE_TOPIC}/note`;     // ✅ 留言同步發布到 MQTT
 
-// MQTT (EMQX public broker)
+// MQTT
 const CONNECT_URL  = "wss://broker.emqx.io:8084/mqtt";
 
 /* ==========================
-   Email / Apps Script
-   - 前端無法「直接指定收件人」(安全限制)
-   - 你要改收件人：請到 Apps Script 內改 TO_EMAIL
+   Email / Apps Script (as requested)
 ========================== */
-const MAIL_TO_DISPLAY = "jjtmutw@gmial.com"; // 只用來顯示在UI
-const MAIL_ENDPOINT   = "https://script.google.com/macros/s/AKfycbwHM5AROpfJpd2DCIKBFjYQ_w89oiwaohsMum9_-Kuhgb1ZuMN9aFhks2EWm8wvORCo/exec";
-const MAIL_SECRET     = "CHANGE_ME_TO_A_LONG_RANDOM_STRING";
+const MAIL_TO_DISPLAY = "jjtmutw@gmial.com"; // UI only
+const MAIL_ENDPOINT   = "https://script.google.com/macros/s/AKfycbyRA4B9SbZu9YFpan1Xilgv8AktHONW1COaz26jh6TcTpwKNyZaYVXtO2HJvdtwEPA/exec";
+const MAIL_SECRET     = "dfdfshfddsfhsdhsdsdsdshfdhgfdsG";
 
 /* ==========================
    Helpers
@@ -551,6 +540,7 @@ const $ = (id) => document.getElementById(id);
 $("deviceName").textContent = DEVICE_NAME;
 $("baseTopic").textContent  = BASE_TOPIC;
 document.title = `HIoT 實驗室電子布告牌（${USER_NAME} / ${DEVICE_NAME}）`;
+$("voiceTitle").textContent = `語音留言 → 寄到 ${MAIL_TO_DISPLAY}`;
 
 function setNet(ok, text){
   $("netDot").className = "dot " + (ok ? "ok" : "bad");
@@ -577,7 +567,6 @@ function setStatus(code, text, level){
 
 /* ==========================
    Status parsing
-   payload examples: out / class / experiment / meeting / break / vacation / custom:臨時離開
 ========================== */
 function parseStatusPayload(payload){
   const raw = (payload || "").trim();
@@ -614,7 +603,7 @@ function parseStatusPayload(payload){
 }
 
 /* ==========================
-   Marquee engine
+   Marquee
 ========================== */
 let marqueeSpeed = 90;
 let marqueePaused = false;
@@ -668,7 +657,7 @@ function parseMarqueePayload(payload){
 }
 
 /* ==========================
-   Voice UI + Speech Recognition + Send mail
+   Voice UI
 ========================== */
 const boardRoot = document.getElementById("boardRoot");
 
@@ -681,9 +670,6 @@ const closeVoice = $("closeVoice");
 const sendVoice  = $("sendVoice");
 const voiceText  = $("voiceText");
 const voiceHint  = $("voiceHint");
-
-// update display email
-document.querySelector(".voiceTitle").textContent = `語音留言 → 寄到 ${MAIL_TO_DISPLAY}`;
 
 function openVoice(){
   if (boardRoot) boardRoot.inert = true;
@@ -761,6 +747,30 @@ if (!SpeechRecognition) {
   });
 }
 
+/* ==========================
+   MQTT client (used also for note publish)
+========================== */
+setNet(false, "MQTT 未連線");
+const client = mqtt.connect(CONNECT_URL, {
+  clientId: `${USER_NAME}-${DEVICE_NAME}-` + Math.random().toString(16).slice(2),
+  clean: true,
+  keepalive: 30,
+  reconnectPeriod: 2000,
+  connectTimeout: 10000
+});
+
+/* ✅ 送出留言後，同時 publish MQTT：payload = "留言+" + message  */
+async function publishNoteToMQTT(message){
+  try{
+    if (!client || !client.connected) return false;
+    client.publish(NOTE_TOPIC, "留言+" + message, { qos: 0, retain: false });
+    return true;
+  }catch(e){
+    console.warn("publish note failed:", e);
+    return false;
+  }
+}
+
 /* ✅ Send: no JSON parsing (avoid "not valid JSON") */
 sendVoice.addEventListener("click", async () => {
   const text = (voiceText.value || "").trim();
@@ -801,28 +811,32 @@ sendVoice.addEventListener("click", async () => {
       /\bsent\b/i.test(raw) ||
       /success/i.test(raw);
 
+    // ✅ 不論 email 成功與否，都嘗試 publish MQTT 留言
+    const mqttOk = await publishNoteToMQTT(text);
+
     if (okByStatus && okByText) {
-      voiceHint.textContent = `✅ 已送出（${USER_NAME}/${DEVICE_NAME}）`;
+      voiceHint.textContent = `✅ Email已送出；MQTT${mqttOk ? "已發佈" : "未連線"}（${USER_NAME}/${DEVICE_NAME}）`;
     } else if (resp.ok) {
-      const preview = (raw || "").replace(/\s+/g, " ").slice(0, 180);
-      voiceHint.textContent = `⚠️ 已送出（回傳非JSON）：${preview}`;
+      const preview = (raw || "").replace(/\s+/g, " ").slice(0, 120);
+      voiceHint.textContent = `⚠️ Email回傳非預期；MQTT${mqttOk ? "已發佈" : "未連線"}：${preview}`;
     } else {
-      const preview = (raw || "").replace(/\s+/g, " ").slice(0, 180);
-      voiceHint.textContent = `❌ 寄送失敗（HTTP ${resp.status}）：${preview}`;
+      const preview = (raw || "").replace(/\s+/g, " ").slice(0, 120);
+      voiceHint.textContent = `❌ Email失敗(HTTP ${resp.status})；MQTT${mqttOk ? "已發佈" : "未連線"}：${preview}`;
     }
 
   } catch (err) {
-    voiceHint.textContent = "❌ 送出錯誤：" + String(err);
+    // 例外也照樣嘗試 publish MQTT
+    const mqttOk = await publishNoteToMQTT(text);
+    voiceHint.textContent = `❌ Email送出錯誤：${String(err)}；MQTT${mqttOk ? "已發佈" : "未連線"}`;
   } finally {
     sendVoice.disabled = false;
   }
 });
 
 /* ==========================
-   Init + MQTT
+   Init UI + MQTT subscriptions
 ========================== */
 setStatus("out","外出中","warn");
-setNet(false, "MQTT 未連線");
 setMarquee("祝大家身體健康,萬事如意!!");
 
 function tickClock(){
@@ -834,15 +848,6 @@ tickClock();
 setInterval(tickClock, 1000);
 
 requestAnimationFrame(marqueeLoop);
-
-// MQTT client
-const client = mqtt.connect(CONNECT_URL, {
-  clientId: `${USER_NAME}-${DEVICE_NAME}-` + Math.random().toString(16).slice(2),
-  clean: true,
-  keepalive: 30,
-  reconnectPeriod: 2000,
-  connectTimeout: 10000
-});
 
 client.on("connect", () => {
   setNet(true, "MQTT 已連線");
@@ -872,7 +877,6 @@ client.on("message", (topic, message) => {
 });
 
 window.addEventListener("resize", () => { x = viewport.clientWidth; });
-
 </script>
 </body>
 </html>
