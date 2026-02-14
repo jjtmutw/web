@@ -728,22 +728,26 @@ sendVoice.addEventListener("click", async () => {
       redirect: "follow"
     });
 
-    const raw = await resp.text();
+    const raw = await resp.text(); // ✅ 永遠只讀文字
     console.log("Apps Script raw response:", raw);
 
-    let obj = null;
-    try { obj = JSON.parse(raw); } catch(e) {}
+    // ✅ 不做 JSON 解析：用 HTTP status + 回傳文字關鍵字判斷
+    const okByStatus = resp.ok; // 200~299
+    const okByText =
+      /"ok"\s*:\s*true/i.test(raw) ||
+      /\bok\b\s*[:=]\s*true/i.test(raw) ||
+      /\bsent\b/i.test(raw) ||
+      /success/i.test(raw);
 
-    if (obj && obj.ok === true) {
-      voiceHint.textContent = "✅ 已寄出到 jj@tmu.edu.tw";
-      return;
-    }
-
-    const preview = (raw || "").replace(/\s+/g, " ").slice(0, 180);
-    if (obj && obj.error) {
-      voiceHint.textContent = "❌ 寄送失敗：" + obj.error;
+    if (okByStatus && okByText) {
+      voiceHint.textContent = "✅ 已送出（請查收 jj@tmu.edu.tw）";
+    } else if (resp.ok) {
+      // 伺服器回 200，但內容不是我們預期的 JSON
+      const preview = (raw || "").replace(/\s+/g, " ").slice(0, 180);
+      voiceHint.textContent = `⚠️ 已送出（回傳非JSON）：${preview}`;
     } else {
-      voiceHint.textContent = `❌ 寄送失敗：回傳非JSON（HTTP ${resp.status}）: ${preview}`;
+      const preview = (raw || "").replace(/\s+/g, " ").slice(0, 180);
+      voiceHint.textContent = `❌ 寄送失敗（HTTP ${resp.status}）：${preview}`;
     }
 
   } catch (err) {
@@ -752,6 +756,7 @@ sendVoice.addEventListener("click", async () => {
     sendVoice.disabled = false;
   }
 });
+
 
 /* Init */
 setStatus("out","外出中","warn");
