@@ -43,6 +43,7 @@
     background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
   }
 
+  /* White Banner */
   .banner{
     background:#fff;
     height:72px;
@@ -377,7 +378,7 @@
     .net{ justify-content:flex-start; }
 
     main{
-      grid-template-columns: 2.8fr 1fr; /* keep 2 columns on tablet landscape */
+      grid-template-columns: 2.8fr 1fr;
       gap: 10px;
     }
     .statusCard{ min-height: 240px; }
@@ -386,7 +387,7 @@
   }
 
   @media (max-width: 700px){
-    main{ grid-template-columns: 1fr; } /* phone portrait */
+    main{ grid-template-columns: 1fr; }
     .photoWrap{ min-height: 190px; }
   }
 
@@ -516,14 +517,16 @@ const USER_NAME    = "pjj";
 const DEVICE_NAME  = "board1";
 const BASE_TOPIC   = `JJ/${USER_NAME}/${DEVICE_NAME}`;
 
+// Topics
 const STATUS_TOPIC = `${BASE_TOPIC}/status`;
 const MARQ_TOPIC   = `${BASE_TOPIC}/marquee`;
-const NOTE_TOPIC   = `${BASE_TOPIC}/note`; // 留言同步發布到 MQTT
+const NOTE_TOPIC   = `${BASE_TOPIC}/note`;     // 留言同步發布到 MQTT
 
+// MQTT
 const CONNECT_URL  = "wss://broker.emqx.io:8084/mqtt";
 
 /* ==========================
-   Email / Apps Script (updated as requested)
+   Email / Apps Script (updated)
 ========================== */
 const MAIL_TO_DISPLAY = "jjtmutw@gmail.com"; // UI only
 const MAIL_ENDPOINT   = "https://script.google.com/macros/s/AKfycbwadDFwIiLa65bpor3TYamAbQ1zBxKYEg7ork_G1jrDMLybnpLkD_YSny1LbSChX2o/exec";
@@ -562,6 +565,10 @@ function setStatus(code, text, level){
   $("statusPill").className = "pill " + (level || "gray");
 }
 
+/* ==========================
+   Status parsing
+   ✅ experiment 顯示改為「上班中」
+========================== */
 function parseStatusPayload(payload){
   const raw = (payload || "").trim();
   const low = raw.toLowerCase();
@@ -577,7 +584,7 @@ function parseStatusPayload(payload){
   const map = new Map([
     ["out","out"], ["外出","out"], ["外出中","out"],
     ["class","class"], ["上課","class"], ["上課中","class"], ["授課","class"], ["教學中","class"],
-    ["experiment","experiment"], ["實驗","experiment"], ["實驗中","experiment"],
+    ["experiment","experiment"], ["實驗","experiment"], ["實驗中","experiment"], ["上班","experiment"], ["上班中","experiment"],
     ["meeting","meeting"], ["開會","meeting"], ["開會中","meeting"], ["會議","meeting"], ["會議中","meeting"],
     ["break","break"], ["休息","break"], ["休息中","break"],
     ["vacation","vacation"], ["休假","vacation"], ["休假中","vacation"], ["請假","vacation"], ["請假中","vacation"]
@@ -588,7 +595,7 @@ function parseStatusPayload(payload){
   switch(key){
     case "out":        return { code:"out",        text:"外出中", level:"warn" };
     case "class":      return { code:"class",      text:"上課中", level:"busy" };
-    case "experiment": return { code:"experiment", text:"實驗中", level:"ok" };
+    case "experiment": return { code:"experiment", text:"上班中", level:"ok" };   // ✅ 改這裡
     case "meeting":    return { code:"meeting",    text:"開會中", level:"busy" };
     case "break":      return { code:"break",      text:"休息中", level:"cool" };
     case "vacation":   return { code:"vacation",   text:"休假中", level:"vac" };
@@ -596,7 +603,9 @@ function parseStatusPayload(payload){
   }
 }
 
-/* Marquee */
+/* ==========================
+   Marquee
+========================== */
 let marqueeSpeed = 90;
 let marqueePaused = false;
 
@@ -649,29 +658,8 @@ function parseMarqueePayload(payload){
 }
 
 /* ==========================
-   MQTT client (used also for note publish)
+   Voice UI
 ========================== */
-setNet(false, "MQTT 未連線");
-const client = mqtt.connect(CONNECT_URL, {
-  clientId: `${USER_NAME}-${DEVICE_NAME}-` + Math.random().toString(16).slice(2),
-  clean: true,
-  keepalive: 30,
-  reconnectPeriod: 2000,
-  connectTimeout: 10000
-});
-
-async function publishNoteToMQTT(message){
-  try{
-    if (!client || !client.connected) return false;
-    client.publish(NOTE_TOPIC, "留言+" + message, { qos: 0, retain: false });
-    return true;
-  }catch(e){
-    console.warn("publish note failed:", e);
-    return false;
-  }
-}
-
-/* Voice UI */
 const boardRoot = document.getElementById("boardRoot");
 
 const voiceBtn   = $("voiceBtn");
@@ -760,7 +748,31 @@ if (!SpeechRecognition) {
   });
 }
 
-/* ✅ Send: no JSON parsing + publish MQTT note */
+/* ==========================
+   MQTT client (used also for note publish)
+========================== */
+setNet(false, "MQTT 未連線");
+const client = mqtt.connect(CONNECT_URL, {
+  clientId: `${USER_NAME}-${DEVICE_NAME}-` + Math.random().toString(16).slice(2),
+  clean: true,
+  keepalive: 30,
+  reconnectPeriod: 2000,
+  connectTimeout: 10000
+});
+
+/* 送出留言後，同時 publish MQTT：payload = "留言+" + message */
+async function publishNoteToMQTT(message){
+  try{
+    if (!client || !client.connected) return false;
+    client.publish(NOTE_TOPIC, "留言+" + message, { qos: 0, retain: false });
+    return true;
+  }catch(e){
+    console.warn("publish note failed:", e);
+    return false;
+  }
+}
+
+/* Send: no JSON parsing (avoid "not valid JSON") */
 sendVoice.addEventListener("click", async () => {
   const text = (voiceText.value || "").trim();
   if (!text) { voiceHint.textContent = "內容是空的，請先說話或輸入文字。"; return; }
@@ -815,7 +827,9 @@ sendVoice.addEventListener("click", async () => {
   }
 });
 
-/* Init UI */
+/* ==========================
+   Init UI + MQTT subscriptions
+========================== */
 setStatus("out","外出中","warn");
 setMarquee("祝大家身體健康,萬事如意!!");
 
@@ -829,7 +843,6 @@ setInterval(tickClock, 1000);
 
 requestAnimationFrame(marqueeLoop);
 
-/* MQTT subscriptions */
 client.on("connect", () => {
   setNet(true, "MQTT 已連線");
   client.subscribe([STATUS_TOPIC, MARQ_TOPIC], { qos: 0 }, (err) => {

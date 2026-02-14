@@ -198,7 +198,7 @@
       <div class="statusGrid">
         <button class="sbtn" data-status="out"><b>外出中</b><span>payload: out</span></button>
         <button class="sbtn" data-status="class"><b>上課中</b><span>payload: class</span></button>
-        <button class="sbtn" data-status="experiment"><b>實驗中</b><span>payload: experiment</span></button>
+        <button class="sbtn" data-status="experiment"><b>上班中</b><span>payload: experiment</span></button>
         <button class="sbtn" data-status="meeting"><b>開會中</b><span>payload: meeting</span></button>
         <button class="sbtn" data-status="break"><b>休息中</b><span>payload: break</span></button>
         <button class="sbtn" data-status="vacation"><b>休假中</b><span>payload: vacation</span></button>
@@ -269,9 +269,8 @@ function setNet(ok, text){
   $("netText").textContent = text;
 }
 
-/* ===== Board dropdown ===== */
+/* Board dropdown */
 function buildBoardOptions(){
-  // 你可以在這裡增刪布告牌
   const boards = ["board1","board2","board3","board4","board5","board6"];
   const sel = $("boardSelect");
   sel.innerHTML = "";
@@ -285,7 +284,7 @@ function buildBoardOptions(){
 }
 buildBoardOptions();
 
-/* ===== Topics ===== */
+/* Topics */
 function user(){ return ($("userName").value || "").trim() || "pjj"; }
 function board(){ return ($("boardSelect").value || "").trim() || "board1"; }
 function base(){ return `JJ/${user()}/${board()}`; }
@@ -302,7 +301,7 @@ function refreshTopics(){
 $("userName").addEventListener("input", refreshTopics);
 $("boardSelect").addEventListener("change", refreshTopics);
 
-/* ===== URL query parameters =====
+/* URL query parameters
    ?user=pjj&board=board3&mqtt=wss://...
 */
 (function applyQueryParams(){
@@ -334,7 +333,7 @@ $("boardSelect").addEventListener("change", refreshTopics);
 })();
 refreshTopics();
 
-/* ===== Publish ===== */
+/* Publish */
 function ensureConnected(){
   if (!client || !client.connected){
     alert("MQTT 尚未連線，請先按「連線 MQTT」。");
@@ -350,7 +349,7 @@ function publish(topic, payload){
   log(`PUB → ${topic}\nPAYLOAD: ${payload}`);
 }
 
-/* ===== Connect / Disconnect ===== */
+/* Connect / Disconnect */
 $("btnConnect").addEventListener("click", () => {
   if (client && client.connected) return;
 
@@ -394,7 +393,7 @@ $("btnDisconnect").addEventListener("click", () => {
   log("Disconnected");
 });
 
-/* ===== UI actions ===== */
+/* UI actions */
 document.querySelectorAll("[data-status]").forEach(btn => {
   btn.addEventListener("click", () => publish(tStatus(), btn.dataset.status));
 });
