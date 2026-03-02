@@ -1,0 +1,40 @@
+{
+  "areas": {
+    "客廳": ["客廳", "大廳", "起居室", "lobby", "living room"],
+    "辦公室": ["辦公室", "辦公間", "老師辦公室", "office"],
+    "實驗室": ["實驗室", "實驗間", "lab", "laboratory"],
+    "房間": ["房間", "臥室", "睡房", "room", "bedroom"],
+    "小風車": ["小風車", "風車", "小風車教室", "小風車區", "pinwheel"]
+  },
+
+  "device_types": {
+    "light": ["燈", "電燈", "燈光", "LED", "led", "light"],
+    "fan": ["風扇", "電扇", "fan"],
+    "ac": ["冷氣", "空調", "冷房", "ac", "aircon", "air conditioner"],
+    "scene": ["場景", "情境", "模式", "scene", "scenario", "mode", "上課模式", "下課模式", "會議模式", "休息模式", "展示模式"],
+    "board": ["電子布告欄", "布告欄", "公布欄", "公佈欄", "看板", "公告欄", "跑馬燈", "board", "marquee"]
+  },
+
+  "actions": {
+    "toggle": ["切換", "切一下", "toggle", "翻轉"],
+    "turn_on": ["打開", "開啟", "開", "on", "ON", "全開"],
+    "turn_off": ["關閉", "關掉", "關", "off", "OFF", "全關"],
+    "query_state": ["狀態", "有開嗎", "是開的嗎", "開了沒", "現在如何"],
+    "set_brightness": ["亮度", "明亮", "brightness", "調亮", "調暗", "變亮", "變暗"],
+    "board_marquee": ["跑馬燈", "滾動", "滾動顯示", "顯示", "公告", "寫", "marquee"],
+    "board_status": ["看板狀態", "布告欄狀態", "公布欄狀態", "狀態設為", "status設為", "status 設為", "status"]
+  },
+
+  "defaults": {
+    "scene_action": "turn_on",
+    "board_action": "board_marquee"
+  },
+
+  "scene_name_actions": {
+    "上課模式": "turn_on",
+    "下課模式": "turn_off",
+    "會議模式": "turn_on",
+    "休息模式": "turn_off",
+    "展示模式": "turn_on"
+  }
+}

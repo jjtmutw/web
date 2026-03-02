@@ -1,0 +1,21 @@
+{
+    "db_backend": "mysql",
+    "mysql_host": "127.0.0.1",
+    "mysql_port": 3306,
+    "mysql_db": "line_center",
+    "mysql_user": "root",
+    "mysql_pass": "tmu2012",
+    "mysql_charset": "utf8mb4",
+    "channel_secret": "2864836ef919d20b11fa15ff2c28c4c1",
+    "channel_access_token": "O86Qe5h2agyjuBjtnWgna683gLI2DXz1b3mCgC5Ag7H3LYEMLNWbDXuVfvRYvZOSSMDmXDu8w0vyEct0RyyanzGtuFVpEZPBEcE2KEdJWsvpdfXIhv3Af7lHpNa8OyMhg7PfKKyVDoyjXyLi/Gwr7AdB04t89/1O/w1cDnyilFU=",
+    "admin_user": "admin",
+    "admin_pass": "james087",
+    "api_key": "1234567890987654321",
+    "line_login_channel_id": "2009244999",
+    "line_login_channel_secret": "4858f7f9bbc6414d59c2e0ee46e749ef",
+    "site_base_url": "https://test.prof-jj.com",
+    "enable_auto_reply": false,
+    "auto_reply_text": "收到 ✅",
+    "site_base_url": "https://test.prof-jj.com",
+    "member_base_url": "https://test.prof-jj.com"
+}

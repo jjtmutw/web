@@ -1,0 +1,6 @@
+mysql-connector-python==8.0.33
+requests==2.31.0
+paho-mqtt==1.6.1
+colorama==0.4.6
+backports.zoneinfo==0.2.1; python_version<'3.9'
+tzdata==2025.1

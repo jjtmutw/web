@@ -1,0 +1,185 @@
+{
+  "version": "2.0",
+  "notes": "Direct lookup mapping with multi-target entries. Scene supports per-switch cmd and multiple boards (board1/board2...).",
+
+  "aliases": {
+    "areas": {
+      "lab": "實驗室",
+      "老師辦公室": "辦公室",
+      "臥室": "房間"
+    },
+    "device_types": {
+      "燈": "light",
+      "電燈": "light",
+      "LED": "light",
+      "風扇": "fan",
+      "電扇": "fan",
+      "冷氣": "ac",
+      "空調": "ac",
+      "場景": "scene",
+      "情境": "scene",
+      "模式": "scene"
+    },
+    "actions": {
+      "turn_on": "on",
+      "turn_off": "off",
+      "toggle": "toggle",
+      "query_state": "state",
+      "set_brightness": "brightness"
+    }
+  },
+
+  "publish": {
+    "iot_cmd_topic": "JJ/iot/cmd",
+    "qos": 1,
+    "retain": false
+  },
+
+  "routes": {
+    "辦公室": {
+      "board": {
+        "1": [
+          { "topic": "JJ/pjj/board1/status",  "payload": "{value}" },
+          { "topic": "JJ/pjj/board1/marquee", "payload": "{value}" }
+        ],
+        "2": [
+          { "topic": "JJ/pjj/board2/status",  "payload": "{value}" },
+          { "topic": "JJ/pjj/board2/marquee", "payload": "{value}" }
+        ]
+      },
+
+      "light": {
+        "all": [
+          { "device": "JJ/LED002", "switch": "s1" },
+          { "device": "JJ/LED002", "switch": "s2" },
+          { "device": "JJ/LED002", "switch": "s3" },
+          { "device": "JJ/LED002", "switch": "s4" }
+        ],
+
+        "1": [
+          { "device": "JJ/LED002", "switch": "s1" }
+        ],
+        "2": [
+          { "device": "JJ/LED002", "switch": "s2" }
+        ],
+        "3": [
+          { "device": "JJ/LED002", "switch": "s3" }
+        ],
+        "4": [
+          { "device": "JJ/LED002", "switch": "s4" }
+        ]
+      },
+
+      "scene": {
+        "3": [
+          { "device": "JJ/LED001", "switch": "s1", "cmd": "off" },
+          { "device": "JJ/LED001", "switch": "s2", "cmd": "off" },
+          { "device": "JJ/LED001", "switch": "s3", "cmd": "off" },
+          { "device": "JJ/LED001", "switch": "s4", "cmd": "off" },
+
+          { "topic": "JJ/pjj/board1/status",  "payload": "class" },
+          { "topic": "JJ/pjj/board1/marquee", "payload": "上課中，請稍候" },
+
+          { "topic": "JJ/pjj/board2/status",  "payload": "class" },
+          { "topic": "JJ/pjj/board2/marquee", "payload": "等一下就回來!!" }
+        ],
+
+        "4": [
+          { "device": "JJ/LED001", "switch": "s1", "cmd": "on" },
+          { "device": "JJ/LED001", "switch": "s2", "cmd": "on" },
+          { "device": "JJ/LED001", "switch": "s3", "cmd": "on" },
+          { "device": "JJ/LED001", "switch": "s4", "cmd": "on" },
+
+          { "topic": "JJ/pjj/board1/status",  "payload": "working" },
+          { "topic": "JJ/pjj/board1/marquee", "payload": "正在努力工作中!!!" },
+
+          { "topic": "JJ/pjj/board2/status",  "payload": "free" },
+          { "topic": "JJ/pjj/board2/marquee", "payload": "請留言，我會盡快回覆" }
+        ],
+
+        "上課模式": [
+          { "device": "JJ/LED002", "switch": "s1", "cmd": "on" },
+          { "device": "JJ/LED002", "switch": "s2", "cmd": "on" },
+          { "topic": "JJ/pjj/board1/status",  "payload": "class" },
+          { "topic": "JJ/pjj/board1/marquee", "payload": "上課中（{area}）" }
+        ],
+
+        "下課模式": [
+          { "device": "JJ/LED002", "switch": "s1", "cmd": "off" },
+          { "device": "JJ/LED002", "switch": "s2", "cmd": "off" },
+          { "topic": "JJ/pjj/board1/status",  "payload": "break" },
+          { "topic": "JJ/pjj/board1/marquee", "payload": "下課了～" }
+        ]
+      }
+    },
+
+    "實驗室": {
+      "light": {
+        "all": [
+          { "device": "JJ/LED001", "switch": "s1" },
+          { "device": "JJ/LED001", "switch": "s2" },
+          { "device": "JJ/LED001", "switch": "s3" },
+          { "device": "JJ/LED001", "switch": "s4" }
+        ],
+
+        "1": [
+          { "device": "JJ/LED001", "switch": "s1" }
+        ],
+        "2": [
+          { "device": "JJ/LED001", "switch": "s2" }
+        ],
+        "3": [
+          { "device": "JJ/LED001", "switch": "s3" }
+        ],
+        "4": [
+          { "device": "JJ/LED001", "switch": "s4" }
+        ]
+      },
+
+      "scene": {
+        "1": [
+          { "device": "JJ/LED001", "switch": "s1", "cmd": "on" },
+          { "device": "JJ/LED001", "switch": "s2", "cmd": "on" },
+          { "topic": "JJ/pjj/board1/marquee", "payload": "實驗進行中" }
+        ],
+        "2": [
+          { "device": "JJ/LED001", "switch": "s1", "cmd": "off" },
+          { "device": "JJ/LED001", "switch": "s2", "cmd": "off" },
+          { "topic": "JJ/pjj/board1/marquee", "payload": "實驗室無人使用中" }
+        ],
+         "3": [
+          { "device": "JJ/LED001", "switch": "s1", "cmd": "on" },
+          { "device": "JJ/LED001", "switch": "s2", "cmd": "on" },
+          { "topic": "JJ/pjj/board1/marquee", "payload": "歡迎參觀JJ HIoT實驗室" }
+        ]
+      }
+    },
+
+    "客廳": {
+      "light": {
+        "1": [
+          { "device": "JJ/LED001", "switch": "s1" }
+        ]
+      }
+    },
+
+    "小風車": {
+      "light": {
+        "1": [{ "device": "JJ/LED002", "switch": "s1" }],
+        "2": [{ "device": "JJ/LED002", "switch": "s2" }],
+        "all": [
+          { "device": "JJ/LED002", "switch": "s1" },
+          { "device": "JJ/LED002", "switch": "s2" }
+        ]
+      }
+    },
+
+    "房間": {
+      "light": {
+        "1": [
+          { "device": "JJ/LED001", "switch": "s4" }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+    "database": {
+        "host": "127.0.0.1",
+        "port": 3306,
+        "user": "root",
+        "password": "tmu2012",
+        "database": "smartcare",
+        "autocommit": false
+    },
+    "mqtt": {
+        "host": "broker.emqx.io",
+        "port": 1883,
+        "username": null,
+        "password": null,
+        "keepalive": 60
+    },
+    "scheduler": {
+        "poll_interval_sec": 2,
+        "batch_size": 20
+    }
+}

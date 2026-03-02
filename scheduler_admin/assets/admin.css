@@ -1,0 +1,300 @@
+/* Scheduler Admin PHP v7.0 - Clean Commercial RWD
+   Build: 2026-03-01 02:39:42
+*/
+:root {
+  --bg:#f4f6f9;
+  --card:#fff;
+  --primary:#0d6efd;
+  --row-odd:#eef5ff;
+  --row-even:#ffffff;
+}
+
+body { background:var(--bg); font-family: Arial, "Microsoft JhengHei", sans-serif; }
+
+.page-shell { max-width: 1240px; margin: 16px auto; padding: 0 12px; }
+
+.topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin-bottom: 12px;
+}
+.brand { font-weight: 800; letter-spacing:.2px; }
+.sub { font-size:12px; color:#6c757d; }
+
+.card-box {
+  background:var(--card);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.06);
+  padding: 14px;
+}
+
+.table thead th {
+  background: var(--primary) !important;
+  color:#fff !important;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+
+
+
+/* default: ellipsis for all cells */
+.table td {
+  overflow:hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.table th { vertical-align: middle; }
+
+/* widths */
+th.col-id, td.col-id { width: 56px; }
+th.col-actions, td.col-actions { width: 300px; }
+
+/* actions: NEVER ellipsis */
+td.col-actions {
+  overflow: visible !important;
+  text-overflow: unset !important;
+  white-space: nowrap !important;
+}
+.actions-wrap {
+  display:flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  align-items:center;
+}
+.actions-wrap .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.btn-xs {
+  padding: .25rem .5rem;
+  font-size: .825rem;
+  border-radius: .5rem;
+}
+
+/* mobile */
+@media (max-width: 768px) {
+  th.col-actions, td.col-actions { width: 320px; }
+  .card-box { padding: 12px; }
+}
+
+/* v7.2 row striping */
+.table tbody tr:nth-child(odd) { background-color:#eef5ff !important; }
+.table tbody tr:nth-child(even) { background-color:#ffffff !important; }
+
+/* v7.2 target shrink */
+th.col-target, td.col-target {
+  width: 70px;
+  max-width: 70px;
+}
+td.col-target {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* v7.2.1 fixes: enforce target width + correct striping + table layout */
+.table { table-layout: fixed; width: 100%; }
+
+/* Target column is 8th (ID,Name,Enabled,Channel,Schedule,NextRunDB,NextRunCalc,Target,Actions) */
+.table th:nth-child(8), .table td:nth-child(8) {
+  width: 70px !important;
+  max-width: 70px !important;
+}
+
+/* Ensure ellipsis on target */
+.table td:nth-child(8) {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Strong striping (apply to cells) */
+.table tbody tr:nth-child(odd) td {
+  background-color: #eef5ff !important;
+}
+.table tbody tr:nth-child(even) td {
+  background-color: #ffffff !important;
+}
+
+/* Actions column (last) never ellipsis */
+.table td:last-child {
+  overflow: visible !important;
+  text-overflow: unset !important;
+  white-space: nowrap !important;
+}
+
+
+/* v7.3 layout refinement */
+.table { table-layout: fixed; width: 100%; }
+
+/* ID narrow */
+.table th:nth-child(1), .table td:nth-child(1) { width:60px; }
+
+/* Name wide and no ellipsis */
+.table th:nth-child(2), .table td:nth-child(2) {
+  width:240px;
+  max-width:240px;
+}
+.table td:nth-child(2) {
+  overflow:visible !important;
+  text-overflow:unset !important;
+  white-space:nowrap !important;
+}
+
+/* Enabled + Channel narrower */
+.table th:nth-child(3), .table td:nth-child(3),
+.table th:nth-child(4), .table td:nth-child(4) {
+  width:80px;
+  max-width:80px;
+}
+
+/* Schedule + NextRunDB + NextRunCalc + Target equal width */
+.table th:nth-child(5), .table td:nth-child(5),
+.table th:nth-child(6), .table td:nth-child(6),
+.table th:nth-child(7), .table td:nth-child(7),
+.table th:nth-child(8), .table td:nth-child(8) {
+  width:150px !important;
+  max-width:150px !important;
+}
+
+/* ellipsis for these middle columns */
+.table td:nth-child(5),
+.table td:nth-child(6),
+.table td:nth-child(7),
+.table td:nth-child(8) {
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+
+/* Actions always visible */
+.table th:nth-child(9), .table td:nth-child(9) {
+  width:280px;
+}
+.table td:nth-child(9) {
+  overflow:visible !important;
+  text-overflow:unset !important;
+  white-space:nowrap !important;
+}
+
+
+/* v7.4: Name auto width (content-driven) */
+.table { table-layout: auto !important; width: 100% !important; }
+
+/* Keep fixed widths for compact columns */
+.table th:nth-child(1), .table td:nth-child(1) { width:60px; }
+.table th:nth-child(3), .table td:nth-child(3),
+.table th:nth-child(4), .table td:nth-child(4) { width:80px; max-width:80px; }
+.table th:nth-child(5), .table td:nth-child(5),
+.table th:nth-child(6), .table td:nth-child(6),
+.table th:nth-child(7), .table td:nth-child(7),
+.table th:nth-child(8), .table td:nth-child(8) { width:150px; max-width:150px; }
+.table th:nth-child(9), .table td:nth-child(9) { width:280px; }
+
+/* Name column: no fixed width, show full text */
+.table th:nth-child(2), .table td:nth-child(2) {
+  width: auto !important;
+  max-width: none !important;
+}
+.table td:nth-child(2) {
+  overflow: visible !important;
+  text-overflow: unset !important;
+  white-space: nowrap !important;
+}
+
+/* Ellipsis for middle columns (keep) */
+.table td:nth-child(5),
+.table td:nth-child(6),
+.table td:nth-child(7),
+.table td:nth-child(8) {
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+
+
+/* v7.5 mobile horizontal scroll + form beautify */
+.table-responsive {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+body { overflow-x: auto; }
+
+/* Make table wider so mobile can scroll to see full Name */
+.table { min-width: 1200px; }
+
+/* Form look like Admin */
+form label {
+  display:block;
+  margin-top: 12px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+form input, form select, form textarea {
+  width: 100%;
+  padding: .5rem .65rem;
+  border: 1px solid #ced4da;
+  border-radius: 10px;
+  background: #fff;
+}
+form textarea { min-height: 110px; }
+form small { color:#6c757d; }
+
+/* Sections */
+.block, .section-box {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 14px;
+  padding: 12px;
+  margin-top: 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.04);
+}
+.block h3 { margin: 0 0 8px 0; font-size: 1.05rem; }
+.hint { font-size: .9rem; color:#6c757d; margin-bottom: 10px; }
+
+/* Pills (weekly) */
+.pill-day input { display:none; }
+.pill-day label {
+  display:inline-block;
+  padding:.35rem .65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(13,110,253,.35);
+  color:#0d6efd;
+  cursor:pointer;
+  margin-right: 6px;
+  margin-top: 6px;
+  font-weight: 700;
+}
+.pill-day input:checked + label {
+  background:#0d6efd;
+  color:#fff;
+  border-color:#0d6efd;
+}
+
+/* v7.6.2 weekly pills */
+.dow-wrap {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+}
+.dow-pill { display:inline-block; margin: 6px 6px 0 0; }
+.dow-pill input { display:none; }
+.dow-pill label {
+  display:inline-block;
+  padding:.35rem .65rem;
+  border-radius:999px;
+  border:1px solid rgba(13,110,253,.35);
+  color:#0d6efd;
+  cursor:pointer;
+  font-weight:700;
+}
+.dow-pill .en { opacity:.75; font-size:.85em; margin-left:6px; }
+.dow-pill.active label,
+.dow-pill input:checked + label {
+  background:#0d6efd;
+  color:#fff;
+  border-color:#0d6efd;
+}

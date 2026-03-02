@@ -1,0 +1,1 @@
+請先編輯 config.json，然後執行 python scheduler.py\n這版會 SET time_zone='+08:00' 避免 next_run_at 8 小時偏移。\n

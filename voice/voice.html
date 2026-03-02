@@ -1,0 +1,1061 @@
+﻿<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Voice UI → MQTT (STT + TTS)</title>
+
+  <style>
+    :root {
+      --bg: #f2f2f7;
+      --card: #ffffff;
+      --sep: #e5e5ea;
+      --label: #111827;
+      --sub: #6b7280;
+      --good: #34c759;
+      --bad: #ff3b30;
+      --blue: #0a84ff;
+      --graybtn: #f9fafb;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Arial;
+      background: var(--bg);
+      margin: 0;
+      padding: 16px;
+      line-height: 1.4;
+      color: var(--label);
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 800;
+      margin: 6px 2px 10px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--sub);
+      letter-spacing: .02em;
+      margin: 12px 8px 8px;
+    }
+
+    .group {
+      background: var(--card);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, .03);
+      border: 1px solid rgba(229, 229, 234, .8);
+    }
+
+    .badge {
+      font-size: 12px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--sep);
+      color: var(--sub);
+      white-space: nowrap;
+    }
+
+    .badge.ok {
+      border-color: rgba(52, 199, 89, .35);
+      color: var(--good);
+    }
+
+    .badge.bad {
+      border-color: rgba(255, 59, 48, .35);
+      color: var(--bad);
+    }
+
+    .remain {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--sub);
+      white-space: nowrap;
+    }
+
+    .mono {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+    }
+
+    /* ===== 連線資訊（Device ID / MQTT URL / Subscribe）===== */
+    .info-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      flex-wrap: wrap;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    .info-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--sub);
+    }
+
+    .info-value {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--label);
+      max-width: 52vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #wsUrl {
+      border: none;
+      outline: none;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      width: auto;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--label);
+    }
+
+    #wsUrl[readonly] {
+      cursor: default;
+    }
+
+    /* ===== 狀態列：單行三個狀態 ===== */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      flex-wrap: wrap;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .status-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--sub);
+    }
+
+    /* ===== 設定：同一列左右兩欄（語言 | 喇叭）===== */
+    .settings-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .settings-grid-2 .cell {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      min-width: 0;
+    }
+
+    .settings-grid-2 .cell+.cell {
+      border-left: 1px solid var(--sep);
+    }
+
+    .cell-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--label);
+      white-space: nowrap;
+    }
+
+    .right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: flex-end;
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* iOS Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 54px;
+      height: 32px;
+      flex: 0 0 auto;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: #d1d5db;
+      transition: .2s;
+      border-radius: 999px;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06);
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 28px;
+      width: 28px;
+      left: 2px;
+      top: 2px;
+      background: white;
+      transition: .2s;
+      border-radius: 999px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, .18);
+    }
+
+    .switch input:checked+.slider {
+      background: var(--good);
+    }
+
+    .switch input:checked+.slider:before {
+      transform: translateX(22px);
+    }
+
+    .switch input:focus+.slider {
+      outline: 3px solid rgba(52, 199, 89, .25);
+    }
+
+    .state-text {
+      font-size: 13px;
+      font-weight: 800;
+      min-width: 44px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .state-text.on {
+      color: var(--good);
+    }
+
+    .state-text.off {
+      color: var(--bad);
+    }
+
+    /* ===== 操作列：錄音 Toggle + 清空 ===== */
+    .btnrow {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--card);
+    }
+
+    .btn {
+      font-size: 16px;
+      font-weight: 800;
+      padding: 12px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--sep);
+      background: var(--graybtn);
+      color: var(--label);
+    }
+
+    .btn:disabled {
+      opacity: .55;
+    }
+
+    .btn.primary {
+      background: var(--blue);
+      border-color: rgba(10, 132, 255, .35);
+      color: white;
+    }
+
+    .btn.danger {
+      background: var(--bad);
+      border-color: rgba(255, 59, 48, .35);
+      color: white;
+    }
+
+    .pills {
+      padding: 10px 12px 12px;
+      border-top: 1px solid var(--sep);
+      background: var(--card);
+      color: var(--sub);
+      font-size: 12px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border: 1px solid var(--sep);
+      border-radius: 999px;
+      background: #fafafa;
+      color: var(--sub);
+      font-weight: 700;
+    }
+
+    .field {
+      width: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      resize: none;
+      font-size: 14px;
+      line-height: 1.35;
+      color: var(--label);
+      padding: 0;
+      margin: 0;
+    }
+
+    .field.mono {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12px;
+      color: var(--sub);
+    }
+
+    .fieldwrap {
+      padding: 10px 12px;
+    }
+
+    .fieldtitle {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--sub);
+      margin-bottom: 8px;
+    }
+
+    #interim {
+      height: 72px;
+    }
+
+    #lastJson {
+      height: 78px;
+    }
+
+    #log {
+      height: 70px;
+    }
+
+    @media (max-width:480px) {
+      .btnrow {
+        grid-template-columns: 1fr;
+      }
+
+      .info-value {
+        max-width: 78vw;
+      }
+
+      .status-row,
+      .info-row {
+        gap: 8px;
+      }
+
+      .settings-grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .settings-grid-2 .cell+.cell {
+        border-left: none;
+        border-top: 1px solid var(--sep);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="title">語音轉文字 / 文字轉語音</div>
+
+  <div class="section-title">連線資訊</div>
+  <div class="group">
+    <div class="info-row">
+      <div class="info-item">
+        <span class="info-label">Device ID</span>
+        <span class="info-value mono" id="devIdLabel">ui1</span>
+      </div>
+
+      <div class="info-item" style="min-width:0;">
+        <span class="info-label">MQTT</span>
+        <input id="wsUrl" class="mono" value="wss://broker.emqx.io:8084/mqtt" readonly />
+      </div>
+
+      <div class="info-item">
+        <span class="info-label">訂閱</span>
+        <span class="info-value mono" id="subLabel">JJ/text2voice</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">狀態</div>
+  <div class="group">
+    <div class="status-row">
+      <div class="status-item">
+        <span class="status-label">MQTT</span>
+        <span id="mqttStatus" class="badge bad">offline</span>
+      </div>
+
+      <div class="status-item">
+        <span class="status-label">STT</span>
+        <span id="sttStatus" class="badge bad">idle</span>
+        <span id="sttRemain" class="remain" style="display:none"></span>
+      </div>
+
+      <div class="status-item">
+        <span class="status-label">TTS</span>
+        <span id="ttsStatus" class="badge ok">on</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">設定</div>
+  <div class="group settings-grid-2">
+    <div class="cell">
+      <div class="cell-label">語言</div>
+      <div class="right">
+        <select id="lang" style="border:1px solid var(--sep); border-radius:10px; padding:8px 10px; font-weight:800;">
+          <option value="zh-TW" selected>zh-TW</option>
+          <option value="zh-CN">zh-CN</option>
+          <option value="en-US">en-US</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cell">
+      <div class="cell-label">喇叭播報</div>
+      <div class="right">
+        <label class="switch" title="控制文字轉語音是否播報">
+          <input id="speakerToggle" type="checkbox" checked />
+          <span class="slider"></span>
+        </label>
+        <div id="speakerState" class="state-text on">開啟</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">操作</div>
+  <div class="group">
+    <div class="btnrow">
+      <button id="btnRecToggle" class="btn primary" disabled>開始錄音</button>
+      <button id="btnClear" class="btn">清空</button>
+    </div>
+
+    <div class="pills">
+      <span style="font-weight:800;">停止詞：</span>
+      <span class="pill">拜拜</span>
+      <span class="pill">掰掰</span>
+      <span class="pill">再見</span>
+      <span class="pill">退下</span>
+    </div>
+
+    <div class="fieldwrap">
+      <div class="fieldtitle">即時文字</div>
+      <textarea id="interim" class="field" readonly></textarea>
+    </div>
+  </div>
+
+  <div class="section-title">訊息</div>
+  <div class="group">
+    <div class="fieldwrap">
+      <div class="fieldtitle">最近送出的 JSON</div>
+      <textarea id="lastJson" class="field mono" readonly></textarea>
+    </div>
+    <div class="fieldwrap" style="border-top:1px solid var(--sep);">
+      <div class="fieldtitle">狀態 / 除錯</div>
+      <textarea id="log" class="field mono" readonly></textarea>
+    </div>
+  </div>
+
+  <!-- Hidden -->
+  <input type="hidden" id="user" value="jj">
+  <input type="hidden" id="replyTo" value="JJ/voice/out">
+  <input type="hidden" id="topicIn" value="JJ/voice/in">
+  <input type="hidden" id="reqStart" value="1">
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script>
+    // =========================
+    // URL params: ?dev_id=ui1&wsUrl=wss://...&sub=JJ/text2voice
+    // =========================
+    function getQueryParams() {
+      const p = new URLSearchParams(location.search);
+      return {
+        dev_id: (p.get("dev_id") || "").trim(),
+        wsUrl: (p.get("wsUrl") || "").trim(),
+        sub: (p.get("sub") || "").trim()
+      };
+    }
+
+    // =========================
+    // Settings
+    // =========================
+    let DEV_ID = "ui1";
+    const SILENCE_MS = 500;
+    let SUB_TOPIC_T2V = "JJ/text2voice";
+
+    // ✅ stop words（已移除「你可以退下」）
+    const STOP_WORDS = ["拜拜", "掰掰", "再見", "退下"];
+
+    // ✅ STT 最少持續 2 分鐘（除非停止詞）
+    const MIN_STT_MS = 120000;
+    let sttStartTs = 0;
+    let stoppedByKeyword = false;
+    let sttRemainTimer = null;
+
+    // ✅ 固定回饋音效：取代「已經送出你的請求」的 TTS
+    const SEND_OK_AUDIO = "http://3.114.197.59/tts/send4you.mp3";
+    const sendOkAudio = new Audio(SEND_OK_AUDIO);
+    sendOkAudio.preload = "auto";
+
+    const $ = id => document.getElementById(id);
+
+    function log(m) {
+      $("log").value = `[${new Date().toISOString()}] ${m}\n` + $("log").value;
+    }
+    function setBadge(id, text, ok) {
+      const el = $(id);
+      el.textContent = text;
+      el.className = "badge " + (ok ? "ok" : "bad");
+    }
+
+    (function applyUrlParams() {
+      const { dev_id, wsUrl, sub } = getQueryParams();
+      if (dev_id) DEV_ID = dev_id;
+      if (wsUrl) $("wsUrl").value = wsUrl;
+      if (sub) SUB_TOPIC_T2V = sub;
+
+      $("devIdLabel").textContent = DEV_ID;
+      $("subLabel").textContent = SUB_TOPIC_T2V;
+
+      log(`params applied: dev_id=${DEV_ID} wsUrl=${$("wsUrl").value} sub=${SUB_TOPIC_T2V}`);
+    })();
+
+    // =========================
+    // req_id auto increment
+    // =========================
+    function nextReqId() {
+      const k = "voice_reqid";
+      let n = parseInt(localStorage.getItem(k) || $("reqStart").value || 1, 10);
+      localStorage.setItem(k, String(n + 1));
+      return String(n);
+    }
+
+    function normalizeZh(t) {
+      return (t || "").toString()
+        .replace(/\s+/g, "")
+        .replace(/[，,。．.!！?？、；;：:“”"’'（）()【】[\]{}<>《》]/g, "");
+    }
+    function hasStopWord(t) {
+      const s = normalizeZh(t);
+      return STOP_WORDS.some(w => s.includes(normalizeZh(w)));
+    }
+
+    // =========================
+    // MQTT auto connect + subscribe
+    // =========================
+    let client = null;
+
+    function connectMqttAuto() {
+      const wsUrl = $("wsUrl").value.trim();
+      const clientId = `web_voice_${DEV_ID}_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
+
+      setBadge("mqttStatus", "connecting...", false);
+      log("MQTT connecting: " + wsUrl);
+
+      client = mqtt.connect(wsUrl, {
+        clientId,
+        protocolVersion: 4, // MQTT 3.1.1
+        clean: true,
+        keepalive: 30,
+        reconnectPeriod: 2000,
+        connectTimeout: 8000
+      });
+
+      client.on("connect", () => {
+        setBadge("mqttStatus", "online", true);
+        log("MQTT connected, subscribing: " + SUB_TOPIC_T2V);
+
+        client.subscribe(SUB_TOPIC_T2V, { qos: 0 }, (err) => {
+          if (err) log("subscribe error: " + err.message);
+          else log("subscribed ok: " + SUB_TOPIC_T2V);
+        });
+
+        $("btnRecToggle").disabled = false;
+      });
+
+      client.on("reconnect", () => setBadge("mqttStatus", "reconnecting...", false));
+      client.on("offline", () => setBadge("mqttStatus", "offline", false));
+      client.on("close", () => setBadge("mqttStatus", "offline", false));
+      client.on("error", (err) => {
+        setBadge("mqttStatus", "error", false);
+        log("MQTT error: " + (err?.message || err));
+      });
+
+      // 收到 text2voice：若 dev_id 符合 → TTS（或播放 mp3）
+      client.on("message", (topic, payloadBuf) => {
+        if (topic !== SUB_TOPIC_T2V) return;
+
+        const raw = payloadBuf.toString();
+        let obj = null;
+        try { obj = JSON.parse(raw); } catch (e) {
+          log("JJ/text2voice JSON parse fail: " + raw);
+          return;
+        }
+
+        const targetDev = (obj?.dev_id ?? "").toString();
+        const text = (obj?.text ?? "").toString();
+        if (!text) return;
+
+        if (targetDev === DEV_ID) {
+          log(`T2V match dev_id=${targetDev} text="${text}"`);
+          speakText(text);
+        } else {
+          log(`T2V ignore dev_id=${targetDev} (mine=${DEV_ID})`);
+        }
+      });
+    }
+
+    // =========================
+    // publish：送 JJ/voice/in + 再送 JJ/text2voice(回饋)
+    // =========================
+    function publishVoiceText(text) {
+      if (!client || !client.connected) {
+        log("publish skipped: mqtt not connected");
+        return;
+      }
+
+      const msgObj = {
+        req_id: nextReqId(),
+        user: $("user").value || "jj",
+        text: text,
+        reply_to: $("replyTo").value || "JJ/voice/out",
+        reply_to_dev: DEV_ID
+      };
+      const msg = JSON.stringify(msgObj);
+      client.publish($("topicIn").value || "JJ/voice/in", msg, { qos: 0, retain: false });
+      $("lastJson").value = msg;
+      log("MQTT publish voice/in: " + msg);
+
+      // 回饋（依需求固定送 JJ/text2voice）
+      const feedback = {
+        req_id: "0",
+        dev_id: DEV_ID,
+        text: "已經送出你的請求",
+        reply_to: $("replyTo").value || "JJ/voice/out"
+      };
+      const fbMsg = JSON.stringify(feedback);
+      client.publish("JJ/text2voice", fbMsg, { qos: 0, retain: false });
+      log("MQTT publish text2voice(feedback): " + fbMsg);
+    }
+
+    // =========================
+    // STT：靜默 0.5 秒送出
+    // =========================
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const rec = SR ? new SR() : null;
+
+    let isRecognizing = false;
+    let parts = [];
+    let hasFinal = false;
+    let silenceTimer = null;
+    let lastSent = "";
+
+    function clearSilenceTimer() {
+      if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+    }
+
+    function updateSttRemainUI() {
+      const el = $("sttRemain");
+      const elapsed = Date.now() - sttStartTs;
+      const leftMs = Math.max(0, MIN_STT_MS - elapsed);
+      const leftSec = Math.ceil(leftMs / 1000);
+
+      if (!isRecognizing) { el.style.display = "none"; return; }
+      if (!stoppedByKeyword && leftMs > 0) {
+        el.style.display = "inline-block";
+        el.textContent = `剩餘 ${leftSec}s`;
+      } else {
+        el.style.display = "none";
+      }
+    }
+
+    function scheduleSend() {
+      clearSilenceTimer();
+      silenceTimer = setTimeout(() => {
+        if (!hasFinal) return;
+
+        const t = parts.join(" ").replace(/\s+/g, " ").trim();
+        if (!t) return;
+
+        if (t === lastSent) { log("silence send skipped: duplicate"); return; }
+        lastSent = t;
+
+        publishVoiceText(t);
+
+        // ✅ 停止詞：送出後停止錄音
+        if (hasStopWord(t)) {
+          log("stop word detected → auto stop recording");
+          stoppedByKeyword = true;
+          safeStopRecognition();
+        }
+
+        parts = [];
+        hasFinal = false;
+        $("interim").value = "";
+      }, SILENCE_MS);
+    }
+
+    function safeStopRecognition() {
+      try {
+        if (rec && isRecognizing) {
+          clearSilenceTimer();
+          rec.stop();
+        }
+      } catch (e) {
+        log("rec.stop exception: " + (e?.message || e));
+      }
+    }
+
+    // =========================
+    // TTS：優先中文男聲 + 特定字串改播放 mp3
+    // =========================
+    let speakerOn = true;
+    let ttsUnlocked = false;
+    let pendingTtsQueue = [];
+    let preferredVoice = null;
+
+    function updateSpeakerUI() {
+      $("speakerToggle").checked = speakerOn;
+      setBadge("ttsStatus", speakerOn ? "on" : "off", speakerOn);
+      const st = $("speakerState");
+      st.textContent = speakerOn ? "開啟" : "關閉";
+      st.className = "state-text " + (speakerOn ? "on" : "off");
+    }
+
+    function getVoicesSafe() {
+      try { return window.speechSynthesis?.getVoices?.() || []; }
+      catch { return []; }
+    }
+
+    function isMaleVoiceName(name) {
+      const n = (name || "").toLowerCase();
+      return n.includes("male") || n.includes("man") || n.includes("男") ||
+        n.includes("yushu") || n.includes("yu-shu") || n.includes("yü-shu");
+    }
+
+    function choosePreferredVoice(lang) {
+      const voices = getVoicesSafe();
+      if (!voices.length) return null;
+
+      const lc = (lang || "").toLowerCase();
+      const candidates = voices.filter(v => (v.lang || "").toLowerCase().startsWith(lc.slice(0, 2)));
+      const exact = candidates.filter(v => (v.lang || "").toLowerCase() === lc);
+      const pool = exact.length ? exact : (candidates.length ? candidates : voices);
+
+      let v = pool.find(x => isMaleVoiceName(x.name));
+      if (v) return v;
+
+      const preferNames = ["Yu-Shu", "Yushu", "Yu Shu", "Yü-Shu", "Xiaogang", "Xiaogang (Male)", "Xiaogang Male"];
+      v = pool.find(x => preferNames.some(nm => (x.name || "").toLowerCase().includes(nm.toLowerCase())));
+      if (v) return v;
+
+      v = pool.find(x => x.default) || pool.find(x => x.localService) || pool[0];
+      return v || null;
+    }
+
+    function refreshPreferredVoice() {
+      const lang = $("lang").value || "zh-TW";
+      preferredVoice = choosePreferredVoice(lang);
+      if (preferredVoice) log(`TTS voice selected: ${preferredVoice.name} (${preferredVoice.lang})`);
+      else log("TTS voice selected: (none, fallback to default)");
+    }
+
+    function unlockTtsOnce() {
+      if (ttsUnlocked) return Promise.resolve(true);
+
+      return new Promise((resolve) => {
+        if (!("speechSynthesis" in window) || !window.SpeechSynthesisUtterance) {
+          log("TTS not supported in this browser");
+          resolve(false);
+          return;
+        }
+
+        try {
+          const u = new SpeechSynthesisUtterance(" ");
+          u.volume = 0;
+          u.onend = () => {
+            ttsUnlocked = true;
+            log("TTS unlocked");
+            refreshPreferredVoice();
+            resolve(true);
+
+            const q = pendingTtsQueue.slice();
+            pendingTtsQueue = [];
+            q.forEach(t => speakText(t));
+          };
+          u.onerror = () => { log("TTS unlock failed"); resolve(false); };
+
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(u);
+        } catch (e) {
+          log("TTS unlock exception: " + (e?.message || e));
+          resolve(false);
+        }
+      });
+    }
+
+    function playSendOkMp3() {
+      try {
+        sendOkAudio.currentTime = 0;
+        const p = sendOkAudio.play();
+        if (p && typeof p.catch === "function") {
+          p.catch(err => log("audio play blocked: " + (err?.message || err)));
+        }
+        log("play send4you.mp3");
+      } catch (e) {
+        log("audio play error: " + (e?.message || e));
+      }
+    }
+
+    function speakText(text) {
+      if (!speakerOn) { log("TTS skipped: speaker off"); return; }
+      if (!text) return;
+
+      // ✅ 特例：把「已經送出你的請求」改成直接播放 mp3（不走 TTS）
+      if (text === "已經送出你的請求") {
+        playSendOkMp3();
+        return;
+      }
+
+      // 其餘照常 TTS
+      if (!ttsUnlocked) {
+        pendingTtsQueue.push(text);
+        log("TTS queued (not unlocked yet)");
+        return;
+      }
+
+      if (!("speechSynthesis" in window) || !window.SpeechSynthesisUtterance) {
+        log("TTS not supported in this browser");
+        return;
+      }
+
+      try {
+        if (!preferredVoice) refreshPreferredVoice();
+
+        window.speechSynthesis.cancel();
+
+        const u = new SpeechSynthesisUtterance(text);
+        const lang = $("lang").value || "zh-TW";
+        u.lang = lang;
+        if (preferredVoice) u.voice = preferredVoice;
+
+        u.rate = lang.startsWith("zh") ? 0.95 : 1.0;
+        u.pitch = lang.startsWith("zh") ? 0.98 : 1.0;
+        u.volume = 1.0;
+
+        u.onstart = () => log("TTS start");
+        u.onend = () => log("TTS end");
+        u.onerror = (e) => log("TTS error: " + (e?.error || "unknown"));
+
+        window.speechSynthesis.speak(u);
+      } catch (e) {
+        log("TTS exception: " + (e?.message || e));
+      }
+    }
+
+    $("speakerToggle").addEventListener("change", async () => {
+      speakerOn = $("speakerToggle").checked;
+      if (!speakerOn) {
+        try { window.speechSynthesis.cancel(); } catch { }
+      } else {
+        await unlockTtsOnce();
+        // 預先把 mp3 也 warm 一次（有些 iOS 需要 user gesture 後才能播）
+        playSendOkMp3();
+      }
+      updateSpeakerUI();
+    });
+
+    $("lang").addEventListener("change", () => {
+      refreshPreferredVoice();
+      log("lang changed: " + $("lang").value);
+    });
+
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        log("TTS voices loaded: " + (getVoicesSafe().length || 0));
+        refreshPreferredVoice();
+      };
+    }
+
+    // =========================
+    // Record toggle UI
+    // =========================
+    function setRecButton(listening) {
+      const b = $("btnRecToggle");
+      if (listening) {
+        b.textContent = "停止錄音";
+        b.classList.remove("primary");
+        b.classList.add("danger");
+      } else {
+        b.textContent = "開始錄音";
+        b.classList.remove("danger");
+        b.classList.add("primary");
+      }
+    }
+
+    $("btnClear").onclick = () => {
+      $("interim").value = "";
+      $("lastJson").value = "";
+      parts = [];
+      hasFinal = false;
+      lastSent = "";
+      clearSilenceTimer();
+      log("cleared");
+    };
+
+    $("btnRecToggle").onclick = async () => {
+      if (!rec) return alert("此瀏覽器不支援 SpeechRecognition。建議用 Chrome/Edge（桌機）");
+      if (!client || !client.connected) return alert("MQTT 尚未連線完成，請稍候。");
+
+      if (isRecognizing) {
+        log("User requested stop");
+        stoppedByKeyword = true;
+        safeStopRecognition();
+        return;
+      }
+
+      // iOS：STT/TTS/Audio 需要 user gesture 解鎖
+      await unlockTtsOnce();
+      playSendOkMp3(); // warm-up
+
+      try {
+        rec.lang = $("lang").value;
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.maxAlternatives = 1;
+        rec.start();
+      } catch (e) {
+        log("rec.start exception: " + (e?.message || e));
+      }
+    };
+
+    if (rec) {
+      rec.onstart = () => {
+        sttStartTs = Date.now();
+        stoppedByKeyword = false;
+
+        if (sttRemainTimer) clearInterval(sttRemainTimer);
+        sttRemainTimer = setInterval(updateSttRemainUI, 250);
+        updateSttRemainUI();
+
+        isRecognizing = true;
+        setBadge("sttStatus", "listening", true);
+        setRecButton(true);
+
+        parts = [];
+        hasFinal = false;
+        $("interim").value = "";
+        clearSilenceTimer();
+        log("STT started");
+      };
+
+      rec.onresult = (e) => {
+        let interim = "";
+        let gotAny = false;
+
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const r = e.results[i];
+          const t = (r[0] && r[0].transcript) ? r[0].transcript.trim() : "";
+          if (!t) continue;
+
+          gotAny = true;
+          if (r.isFinal) { parts.push(t); hasFinal = true; }
+          else { interim += t; }
+        }
+
+        $("interim").value = interim;
+        if (gotAny) scheduleSend();
+      };
+
+      rec.onend = () => {
+        const elapsed = Date.now() - sttStartTs;
+
+        // ✅ 未滿 2 分鐘且不是停止詞/手動停止 → 自動重啟
+        if (!stoppedByKeyword && elapsed < MIN_STT_MS) {
+          log(`STT ended too early (${Math.round(elapsed / 1000)}s) → auto restart`);
+          setTimeout(() => { try { rec.start(); } catch { } }, 300);
+          return;
+        }
+
+        isRecognizing = false;
+        clearSilenceTimer();
+
+        if (sttRemainTimer) { clearInterval(sttRemainTimer); sttRemainTimer = null; }
+        $("sttRemain").style.display = "none";
+
+        setBadge("sttStatus", "idle", false);
+        setRecButton(false);
+        log("STT ended");
+
+        // 防漏：若剛好結束仍有 final，補送一次
+        const t = parts.join(" ").replace(/\s+/g, " ").trim();
+        if (hasFinal && t && t !== lastSent) {
+          lastSent = t;
+          publishVoiceText(t);
+        }
+
+        parts = [];
+        hasFinal = false;
+        $("interim").value = "";
+      };
+
+      rec.onerror = (e) => {
+        setBadge("sttStatus", "error", false);
+        log("STT error: " + e.error);
+
+        isRecognizing = false;
+        setRecButton(false);
+
+        if (e.error === "service-not-allowed") {
+          alert(
+            `📱 iPhone / iPad 可能無法使用瀏覽器語音辨識
+
+請嘗試：
+1) 用 Safari 直接開（不要加入主畫面）
+2) 設定 → Siri 與搜尋：開啟 Siri
+3) 設定 → 一般 → 鍵盤：啟用聽寫
+
+若仍失敗，表示 iOS Safari 限制，需改用伺服器端語音辨識（例如 Whisper）。`
+          );
+        }
+      };
+    }
+
+    // =========================
+    // Init
+    // =========================
+    setBadge("mqttStatus", "offline", false);
+    setBadge("sttStatus", "idle", false);
+    setRecButton(false);
+    updateSpeakerUI();
+
+    refreshPreferredVoice();
+    connectMqttAuto();
+  </script>
+</body>
+
+</html>

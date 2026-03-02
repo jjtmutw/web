@@ -1,0 +1,36 @@
+{
+  "db": {
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "root",
+    "password": "tmu2012",
+    "database": "smartcare",
+    "pool_size": 5,
+    "connect_timeout": 10,
+    "charset": "utf8mb4"
+  },
+  "scheduler": {
+    "poll_interval_sec": 2,
+    "batch": 20,
+    "mysql_session_time_zone": "+08:00",
+    "default_timezone": "Asia/Taipei",
+    "log_file": "",
+    "control_enabled": true,
+    "control_host": "127.0.0.1",
+    "control_port": 5055,
+    "control_token": "james"
+  },
+  "mqtt": {
+    "host": "broker.emqx.io",
+    "port": 1883,
+    "username": "",
+    "password": "",
+    "client_id_prefix": "sched-",
+    "keepalive": 30,
+    "tls": false
+  },
+  "http": {
+    "user_agent": "JJ-Scheduler/3.0",
+    "verify_tls": true
+  }
+}

@@ -1,0 +1,10 @@
+升級到 v5（多時段）需要新增欄位：times_of_day（逗號分隔 HH:MM）
+
+1) 在 smartcare DB 執行：
+ALTER TABLE schedule_jobs
+  ADD COLUMN times_of_day VARCHAR(255) NULL AFTER time_of_day;
+
+2) 舊資料不改也能用：
+   - 若 times_of_day 為 NULL/空，系統會使用 time_of_day（單一時間）
+
+3) 建議：WEEKLY 一定要填 days_of_week + 至少一個時間（times_of_day 或 time_of_day）
