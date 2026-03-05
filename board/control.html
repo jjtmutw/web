@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HIoT 布告欄控制台（Mobile UI）</title>
+
+<style>
+  :root{
+    --bg:#0b1220;
+    --card: rgba(18,27,46,.86);
+    --line: rgba(255,255,255,.12);
+    --text:#e8eefc;
+    --muted:#a9b6d6;
+    --ok:#22c55e;
+    --warn:#f59e0b;
+    --bad:#ef4444;
+    --btn: rgba(255,255,255,.08);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC",Arial,sans-serif;
+    background:
+      radial-gradient(900px 520px at 15% 12%, rgba(96,165,250,.16), transparent 60%),
+      radial-gradient(900px 520px at 85% 30%, rgba(34,197,94,.12), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:14px;
+  }
+  .wrap{ width:min(980px,100%); display:flex; flex-direction:column; gap:12px; }
+
+  .card{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 12px;
+    box-shadow: 0 16px 52px rgba(0,0,0,.45);
+  }
+
+  .header{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .hTitle{
+    font-size:18px; font-weight:1000; letter-spacing:.3px;
+  }
+  .hSub{ color:var(--muted); font-size:12px; }
+  .net{
+    margin-left:auto;
+    display:flex; align-items:center; gap:8px;
+    color:var(--muted); font-size:12px;
+  }
+  .dot{ width:10px;height:10px;border-radius:999px;background:#94a3b8; box-shadow:0 0 0 4px rgba(148,163,184,.12); }
+  .dot.ok{ background:var(--ok); box-shadow:0 0 0 4px rgba(34,197,94,.14); }
+  .dot.bad{ background:var(--bad); box-shadow:0 0 0 4px rgba(239,68,68,.14); }
+
+  label{ display:block; color:var(--muted); font-size:12px; margin:10px 0 6px; }
+  input, select, textarea{
+    width:100%;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    padding: 11px 12px;
+    font-size: 15px;
+    outline: none;
+  }
+  textarea{ min-height: 92px; resize: vertical; }
+
+  .row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .col{ flex:1 1 220px; }
+
+  .btn{
+    border-radius: 14px;
+    border:1px solid rgba(255,255,255,.14);
+    background: var(--btn);
+    color: var(--text);
+    padding: 12px 12px;
+    font-weight: 1000;
+    cursor:pointer;
+    user-select:none;
+    min-height: 46px;
+  }
+  .btn.primary{ background: rgba(34,197,94,.18); border-color: rgba(34,197,94,.35); }
+  .btn.warn{ background: rgba(245,158,11,.18); border-color: rgba(245,158,11,.35); }
+  .btn.ghost{ background: transparent; }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; }
+
+  .statusGrid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:10px;
+    margin-top:10px;
+  }
+  .sbtn{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    align-items:flex-start;
+    justify-content:center;
+    padding: 14px 12px;
+    border-radius: 16px;
+    border:1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    cursor:pointer;
+    min-height: 64px;
+  }
+  .sbtn b{ font-size:16px; letter-spacing:.3px; }
+  .sbtn span{ font-size:12px; color:var(--muted); }
+
+  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New",monospace; font-size:12px; }
+  .hint{ color:var(--muted); font-size:12px; margin-top:8px; line-height:1.5; }
+
+  details{
+    border:1px solid rgba(255,255,255,.10);
+    border-radius: 14px;
+    background: rgba(0,0,0,.18);
+    overflow:hidden;
+  }
+  summary{
+    cursor:pointer;
+    padding: 10px 12px;
+    font-weight: 1000;
+    list-style:none;
+  }
+  summary::-webkit-details-marker{ display:none; }
+  .log{
+    padding: 10px 12px;
+    border-top:1px solid rgba(255,255,255,.08);
+    max-height: 220px;
+    overflow:auto;
+    white-space:pre-wrap;
+    font-size:12px;
+    line-height:1.45;
+    color:#dbe7ff;
+  }
+
+  @media (min-width: 860px){
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .statusGrid{ grid-template-columns: 1fr 1fr 1fr; }
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <div class="card">
+    <div class="header">
+      <div>
+        <div class="hTitle">HIoT 布告欄控制台</div>
+        <div class="hSub">Mobile-first UI ・Publish to MQTT (WSS) ・支援 URL 參數</div>
+      </div>
+      <div class="net">
+        <span id="netDot" class="dot"></span>
+        <span id="netText">未連線</span>
+      </div>
+    </div>
+
+    <label>MQTT WSS URL</label>
+    <input id="mqttUrl" value="wss://broker.emqx.io:8084/mqtt" placeholder="例如：wss://broker.emqx.io:8084/mqtt">
+
+    <div class="row">
+      <div class="col">
+        <label>User</label>
+        <input id="userName" value="pjj" placeholder="例如：pjj">
+      </div>
+      <div class="col">
+        <label>Board（下拉選單）</label>
+        <select id="boardSelect"></select>
+      </div>
+    </div>
+
+    <label>Base Topic</label>
+    <input id="baseTopic" class="mono" readonly>
+
+    <div class="row" style="margin-top:10px;">
+      <button id="btnConnect" class="btn primary" style="flex:1;">連線 MQTT</button>
+      <button id="btnDisconnect" class="btn" style="flex:1;" disabled>中斷</button>
+    </div>
+
+    <div class="hint">
+      狀態 Topic：<span class="mono" id="statusTopicTxt"></span><br>
+      跑馬燈 Topic：<span class="mono" id="marqTopicTxt"></span><br>
+      URL 參數：<span class="mono">?user=pjj&board=board3&mqtt=wss://broker.emqx.io:8084/mqtt</span>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="hTitle" style="font-size:16px;">狀態（手機大按鈕）</div>
+      <div class="hSub">一鍵送出 status payload</div>
+
+      <div class="statusGrid">
+        <button class="sbtn" data-status="out"><b>外出中</b><span>payload: out</span></button>
+        <button class="sbtn" data-status="class"><b>上課中</b><span>payload: class</span></button>
+        <button class="sbtn" data-status="working"><b>上班中</b><span>payload: working</span></button>
+        <button class="sbtn" data-status="meeting"><b>開會中</b><span>payload: meeting</span></button>
+        <button class="sbtn" data-status="break"><b>休息中</b><span>payload: break</span></button>
+        <button class="sbtn" data-status="vacation"><b>休假中</b><span>payload: vacation</span></button>
+      </div>
+
+      <label>自訂狀態（會送出 custom:xxx）</label>
+      <div class="row">
+        <input id="customStatus" placeholder="例如：臨時離開" style="flex:1;">
+        <button id="btnSendCustom" class="btn warn" style="flex:0 0 120px;">送出</button>
+      </div>
+
+      <label>手動狀態 payload（可直接輸入 out / class / custom:...）</label>
+      <div class="row">
+        <input id="statusPayload" placeholder="例如：custom:訪客來訪" style="flex:1;">
+        <button id="btnSendStatus" class="btn primary" style="flex:0 0 120px;">送出</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hTitle" style="font-size:16px;">跑馬燈公告</div>
+      <div class="hSub">送出到 marquee topic（支援 speed / pause / play）</div>
+
+      <label>公告內容</label>
+      <textarea id="marqText">祝大家身體健康,萬事如意!!</textarea>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="btnSendMarq" class="btn primary" style="flex:1;">送出公告</button>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="btnPause" class="btn" style="flex:1;">pause</button>
+        <button id="btnPlay" class="btn" style="flex:1;">play</button>
+      </div>
+
+      <label>速度（可選）</label>
+      <div class="row">
+        <input id="speed" placeholder="例如：120（px/sec）" style="flex:1;">
+        <button id="btnSendSpeed" class="btn" style="flex:0 0 140px;">套用速度</button>
+      </div>
+
+      <div class="hint">
+        你也可以直接送：<span class="mono">speed=120;公告內容</span>
+      </div>
+    </div>
+  </div>
+
+  <details class="card" open>
+    <summary>送出紀錄（Log）</summary>
+    <div id="log" class="log"></div>
+  </details>
+
+</div>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>
+let client = null;
+
+const $ = (id) => document.getElementById(id);
+const logEl = $("log");
+
+function log(msg){
+  const t = new Date().toLocaleString();
+  logEl.textContent = `[${t}] ${msg}\n` + logEl.textContent;
+}
+
+function setNet(ok, text){
+  $("netDot").className = "dot " + (ok ? "ok" : "bad");
+  $("netText").textContent = text;
+}
+
+/* Board dropdown */
+function buildBoardOptions(){
+  const boards = ["board1","board2","board3","board4","board5","board6"];
+  const sel = $("boardSelect");
+  sel.innerHTML = "";
+  boards.forEach(b=>{
+    const opt = document.createElement("option");
+    opt.value = b;
+    opt.textContent = b;
+    sel.appendChild(opt);
+  });
+  sel.value = "board1";
+}
+buildBoardOptions();
+
+/* Topics */
+function user(){ return ($("userName").value || "").trim() || "pjj"; }
+function board(){ return ($("boardSelect").value || "").trim() || "board1"; }
+function base(){ return `JJ/${user()}/${board()}`; }
+
+function tStatus(){ return `${base()}/status`; }
+function tMarq(){ return `${base()}/marquee`; }
+
+function refreshTopics(){
+  $("baseTopic").value = base();
+  $("statusTopicTxt").textContent = tStatus();
+  $("marqTopicTxt").textContent = tMarq();
+}
+
+$("userName").addEventListener("input", refreshTopics);
+$("boardSelect").addEventListener("change", refreshTopics);
+
+/* URL query parameters
+   ?user=pjj&board=board3&mqtt=wss://...
+*/
+(function applyQueryParams(){
+  const params = new URLSearchParams(window.location.search);
+
+  const qUser  = params.get("user");
+  const qBoard = params.get("board");
+  const qMQTT  = params.get("mqtt");
+
+  if (qUser) $("userName").value = decodeURIComponent(qUser);
+
+  if (qBoard) {
+    const b = decodeURIComponent(qBoard);
+    const sel = $("boardSelect");
+    let found = false;
+    [...sel.options].forEach(o => { if (o.value === b) found = true; });
+    if (!found) {
+      const opt = document.createElement("option");
+      opt.value = b;
+      opt.textContent = b;
+      sel.appendChild(opt);
+    }
+    sel.value = b;
+  }
+
+  if (qMQTT) $("mqttUrl").value = decodeURIComponent(qMQTT);
+
+  refreshTopics();
+})();
+refreshTopics();
+
+/* Publish */
+function ensureConnected(){
+  if (!client || !client.connected){
+    alert("MQTT 尚未連線，請先按「連線 MQTT」。");
+    log("⚠️ MQTT 未連線，publish 被阻止");
+    return false;
+  }
+  return true;
+}
+
+function publish(topic, payload){
+  if (!ensureConnected()) return;
+  client.publish(topic, payload, { qos: 0, retain: false });
+  log(`PUB → ${topic}\nPAYLOAD: ${payload}`);
+}
+
+/* Connect / Disconnect */
+$("btnConnect").addEventListener("click", () => {
+  if (client && client.connected) return;
+
+  const url = ($("mqttUrl").value || "").trim();
+  if (!url.startsWith("wss://")){
+    alert("請輸入 wss:// 開頭的 MQTT WebSocket URL（避免 Mixed Content）。");
+    return;
+  }
+
+  setNet(false, "連線中…");
+  log("Connecting: " + url);
+
+  client = mqtt.connect(url, {
+    clientId: "board-control-" + Math.random().toString(16).slice(2),
+    clean: true,
+    keepalive: 30,
+    reconnectPeriod: 2000,
+    connectTimeout: 10000
+  });
+
+  client.on("connect", () => {
+    setNet(true, "已連線");
+    $("btnConnect").disabled = true;
+    $("btnDisconnect").disabled = false;
+    log("Connected ✅");
+  });
+
+  client.on("reconnect", () => setNet(false, "重新連線中…"));
+  client.on("offline", () => setNet(false, "離線"));
+  client.on("close", () => setNet(false, "已關閉"));
+  client.on("error", (e) => setNet(false, "錯誤: " + (e?.message || e)));
+});
+
+$("btnDisconnect").addEventListener("click", () => {
+  if (!client) return;
+  try{ client.end(true); }catch(e){}
+  client = null;
+  setNet(false, "未連線");
+  $("btnConnect").disabled = false;
+  $("btnDisconnect").disabled = true;
+  log("Disconnected");
+});
+
+/* UI actions */
+document.querySelectorAll("[data-status]").forEach(btn => {
+  btn.addEventListener("click", () => publish(tStatus(), btn.dataset.status));
+});
+
+$("btnSendCustom").addEventListener("click", () => {
+  const v = ($("customStatus").value || "").trim();
+  if (!v) return;
+  publish(tStatus(), "custom:" + v);
+});
+
+$("btnSendStatus").addEventListener("click", () => {
+  const v = ($("statusPayload").value || "").trim();
+  if (!v) return;
+  publish(tStatus(), v);
+});
+
+$("btnSendMarq").addEventListener("click", () => {
+  const v = ($("marqText").value || "").trim();
+  if (!v) return;
+  publish(tMarq(), v);
+});
+
+$("btnPause").addEventListener("click", () => publish(tMarq(), "pause"));
+$("btnPlay").addEventListener("click", () => publish(tMarq(), "play"));
+
+$("btnSendSpeed").addEventListener("click", () => {
+  const sp = ($("speed").value || "").trim();
+  if (!sp) return;
+  const msg = ($("marqText").value || "").trim() || "（空白公告）";
+  publish(tMarq(), `speed=${sp};${msg}`);
+});
+
+/* init */
+setNet(false, "未連線");
+</script>
+</body>
+</html>
