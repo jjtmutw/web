@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light only" />
+  <title>Travel Medical Record (Offline)</title>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#111a2e;
+      --text:#eaf0ff;
+      --muted:#b9c6ff;
+      --accent:#4da3ff;
+      --danger:#ff5d5d;
+      --ok:#55e0a3;
+      --line: rgba(255,255,255,.14);
+      --shadow: 0 10px 30px rgba(0,0,0,.28);
+      --radius: 16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "PingFang TC", "Microsoft JhengHei", "Noto Sans CJK TC", Arial, sans-serif;
+    }
+    body{
+      margin:0;
+      background: radial-gradient(1200px 600px at 15% 10%, rgba(77,163,255,.18), transparent 55%),
+                  radial-gradient(1000px 700px at 85% 20%, rgba(85,224,163,.14), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      font-family:var(--sans);
+      line-height:1.55;
+    }
+    .wrap{ max-width: 980px; margin: 18px auto 56px; padding: 0 14px; }
+    header{
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+      padding: 14px 14px;
+      position: sticky; top:0; z-index:10;
+      background: rgba(11,18,32,.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    .brand{ display:flex; flex-direction:column; gap:2px; }
+    .title{ font-size: 16px; letter-spacing:.4px; font-weight:700; }
+    .sub{ font-size: 12px; color: var(--muted); }
+    .tools{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+    select, button, a.btn {
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border: 1px solid var(--line);
+      padding: 9px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      text-decoration:none;
+      cursor:pointer;
+    }
+    button:hover, a.btn:hover, select:hover{ border-color: rgba(77,163,255,.65); }
+    .grid{
+      display:grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    @media (max-width: 900px){ .grid{ grid-template-columns: 1fr; } }
+    .card{
+      background: rgba(17,26,46,.86);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .card h2{
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: var(--muted);
+      letter-spacing:.2px;
+      text-transform: uppercase;
+    }
+    .hero{
+      border-left: 4px solid var(--danger);
+      padding-left: 12px;
+    }
+    .heroTop{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .photo{
+      width:78px;
+      height:78px;
+      border-radius: 18px;
+      object-fit: cover;
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 20px rgba(0,0,0,.25);
+    }
+    .hero .big{ font-size: 18px; font-weight:800; margin: 2px 0 8px; }
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(0,0,0,.14);
+      margin: 4px 6px 0 0;
+    }
+    .pill strong{ color: var(--text); font-weight:700; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; }
+    .kvs{
+      display:grid;
+      grid-template-columns: 170px 1fr;
+      gap: 8px 12px;
+      font-size: 14px;
+      padding-top: 4px;
+    }
+    @media (max-width: 520px){ .kvs{ grid-template-columns: 1fr; } }
+    .k{ color: var(--muted); }
+    .v{ color: var(--text); word-break: break-word; white-space: pre-line; }
+    .alert{
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,93,93,.45);
+      background: rgba(255,93,93,.09);
+    }
+    .okbox{
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(85,224,163,.4);
+      background: rgba(85,224,163,.08);
+    }
+    table{
+      width:100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      overflow:hidden;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    th, td{
+      padding: 10px 10px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    th{ text-align:left; color: var(--muted); font-weight:700; background: rgba(255,255,255,.04); }
+    tr:last-child td{ border-bottom:none; }
+    .mono{ font-family: var(--mono); }
+    .muted{ color: var(--muted); }
+    .qrwrap{ display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; }
+    .qrbox{
+      width: 220px; max-width: 82vw;
+      background: #fff;
+      padding: 10px;
+      border-radius: 14px;
+    }
+    .small{ font-size: 12px; color: var(--muted); }
+    .stamp{ font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .footer{
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+
+    @media print{
+      header{ position: static; background:#fff; color:#000; border:none; }
+      body{ background:#fff; color:#000; }
+      .card{ box-shadow:none; background:#fff; border: 1px solid #ddd; }
+      .wrap{ max-width: 100%; }
+      .tools{ display:none; }
+      .qrbox{ border:1px solid #ddd; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="brand">
+      <div class="title" id="ui_title">Travel Medical Record</div>
+      <div class="sub" id="ui_sub">Emergency-ready summary for travel</div>
+    </div>
+
+    <div class="tools">
+      <select id="langSelect" aria-label="Language">
+        <option value="zh">中文</option>
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+      </select>
+      <button id="btnPrint">Print / Save PDF</button>
+      <button id="btnReload">Reload Data</button>
+      <a class="btn" href="data.js" target="_blank" rel="noopener">data.js</a>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="grid">
+      <main class="card">
+        <h2 id="sec_emergency">Emergency Summary</h2>
+
+        <section class="hero">
+          <div class="heroTop">
+            <img id="profilePhoto" class="photo" src="assets/profile.png" alt="Profile photo" />
+            <div>
+              <div class="big" id="p_name">—</div>
+              <div class="row" id="heroPills"></div>
+            </div>
+          </div>
+
+          <div class="alert" id="box_allergy">
+            <strong id="lbl_allergies">Allergies</strong>
+            <div id="p_allergies" style="margin-top:6px;">—</div>
+          </div>
+
+          <div class="okbox">
+            <strong id="lbl_conditions">Major Conditions</strong>
+            <div id="p_conditions" style="margin-top:6px;">—</div>
+          </div>
+        </section>
+
+        <div style="height:12px"></div>
+
+        <section class="card" style="padding:12px;">
+          <h2 id="sec_ident">Identification</h2>
+          <div class="kvs" id="identKvs"></div>
+        </section>
+
+        <div style="height:12px"></div>
+
+        <section class="card" style="padding:12px;">
+          <h2 id="sec_meds">Current Medications</h2>
+          <div class="small" id="hint_meds">Use generic names if possible.</div>
+          <div style="height:8px"></div>
+          <div id="medTableWrap"></div>
+        </section>
+
+        <div style="height:12px"></div>
+
+        <section class="card" style="padding:12px;">
+          <h2 id="sec_history">Key History</h2>
+          <div class="kvs" id="historyKvs"></div>
+        </section>
+
+        <div style="height:12px"></div>
+
+        <section class="card" style="padding:12px;">
+          <h2 id="sec_tests">Key Test Results</h2>
+          <div class="kvs" id="testsKvs"></div>
+        </section>
+
+        <div class="footer">
+          <div id="ui_privacy">
+            Privacy note: This page may contain sensitive medical data. Share only when needed.
+          </div>
+          <div class="stamp" id="lastUpdated">—</div>
+        </div>
+      </main>
+
+      <aside class="card">
+        <h2 id="sec_qr">QR Code</h2>
+        <div class="qrwrap">
+          <div class="small" id="ui_qr_hint">Scan to open this page.</div>
+          <div class="qrbox">
+            <div id="qrcode"></div>
+          </div>
+          <div class="small mono" id="pageUrl">—</div>
+
+          <div style="height:8px"></div>
+
+          <h2 id="sec_contact">Emergency Contact</h2>
+          <div class="kvs" id="contactKvs"></div>
+
+          <div style="height:8px"></div>
+
+          <h2 id="sec_ins">Insurance</h2>
+          <div class="kvs" id="insKvs"></div>
+
+          <div style="height:8px"></div>
+
+          <h2 id="sec_files">Attachments</h2>
+          <div class="small" id="ui_files_hint">
+            Optional: put PDF reports under files/ and link them in data.js.
+          </div>
+          <div style="height:8px"></div>
+          <div id="filesList"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- QRCode library (CDN). If your browser blocks it on file://, the page still works. -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+  <script src="i18n.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
