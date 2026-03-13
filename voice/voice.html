@@ -504,7 +504,8 @@
     // Settings
     // =========================
     let DEV_ID = "ui1";
-    const SILENCE_MS = 500;
+    const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+    const SILENCE_MS = IS_MOBILE ? 900 : 500;
     let SUB_TOPIC_T2V = "JJ/text2voice";
 
     // ✅ stop words（已移除「你可以退下」）
@@ -517,37 +518,10 @@
     let sttRemainTimer = null;
 
     // ✅ 固定回饋音效：取代「已經送出你的請求」的 TTS
-    const DEFAULT_SEND_OK_AUDIO = "https://jjtmutw.github.io/web/voice/send4you.mp3";
-    let SEND_OK_AUDIO = DEFAULT_SEND_OK_AUDIO;
+    const SEND_OK_AUDIO = "https://jjtmutw.github.io/web/voice/send4you.mp3";
     const sendOkAudio = new Audio();
     sendOkAudio.preload = "auto";
-
-    function normalizeAudioUrl(url) {
-      const raw = (url || "").toString().trim();
-      if (!raw) return DEFAULT_SEND_OK_AUDIO;
-      if (/^https?:\/\//i.test(raw)) return raw;
-      if (raw.startsWith("/")) return raw;
-      return "/tts/" + raw.replace(/^\/+/, "");
-    }
-
-    function applySendOkAudioParam() {
-      const params = new URLSearchParams(location.search);
-      const audioUrl = params.get("audio") || params.get("send_ok_audio") || DEFAULT_SEND_OK_AUDIO;
-      SEND_OK_AUDIO = normalizeAudioUrl(audioUrl);
-    }
-
-    function primeSendOkAudio() {
-      try {
-        sendOkAudio.pause();
-        sendOkAudio.removeAttribute("src");
-        sendOkAudio.load();
-        sendOkAudio.src = SEND_OK_AUDIO;
-        sendOkAudio.load();
-        log("audio primed: " + SEND_OK_AUDIO);
-      } catch (e) {
-        log("audio prime error: " + (e?.message || e));
-      }
-    }
+    let sendOkAudioPrepared = false;
 
     const $ = id => document.getElementById(id);
 
@@ -565,12 +539,12 @@
       if (dev_id) DEV_ID = dev_id;
       if (wsUrl) $("wsUrl").value = wsUrl;
       if (sub) SUB_TOPIC_T2V = sub;
-      applySendOkAudioParam();
 
       $("devIdLabel").textContent = DEV_ID;
       $("subLabel").textContent = SUB_TOPIC_T2V;
 
-      log(`params applied: dev_id=${DEV_ID} wsUrl=${$("wsUrl").value} sub=${SUB_TOPIC_T2V} audio=${SEND_OK_AUDIO}`);
+      log(`params applied: dev_id=${DEV_ID} wsUrl=${$("wsUrl").value} sub=${SUB_TOPIC_T2V}`);
+      log(`platform: ${IS_MOBILE ? "mobile" : "desktop"}, silence=${SILENCE_MS}ms`);
     })();
 
     // =========================
@@ -692,12 +666,17 @@
     }
 
     // =========================
-    // STT：靜默 0.5 秒送出
+    // STT：桌機偏連續、手機偏穩定
     // =========================
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const rec = SR ? new SR() : null;
+    let rec = null;
 
     let isRecognizing = false;
+    let shouldAutoRestart = false;
+    let manualStopRequested = false;
+    let pendingRestartTimer = null;
+    let restartCount = 0;
+    let startGuardTs = 0;
     let parts = [];
     let hasFinal = false;
     let silenceTimer = null;
@@ -705,6 +684,10 @@
 
     function clearSilenceTimer() {
       if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+    }
+
+    function clearPendingRestart() {
+      if (pendingRestartTimer) { clearTimeout(pendingRestartTimer); pendingRestartTimer = null; }
     }
 
     function updateSttRemainUI() {
@@ -735,9 +718,9 @@
 
         publishVoiceText(t);
 
-        // ✅ 停止詞：送出後停止錄音
         if (hasStopWord(t)) {
           log("stop word detected → auto stop recording");
+          manualStopRequested = true;
           stoppedByKeyword = true;
           safeStopRecognition();
         }
@@ -748,14 +731,186 @@
       }, SILENCE_MS);
     }
 
+    function finishRecognitionUi() {
+      isRecognizing = false;
+      clearSilenceTimer();
+      if (sttRemainTimer) { clearInterval(sttRemainTimer); sttRemainTimer = null; }
+      $("sttRemain").style.display = "none";
+      setBadge("sttStatus", "idle", false);
+      setRecButton(false);
+    }
+
     function safeStopRecognition() {
       try {
-        if (rec && isRecognizing) {
-          clearSilenceTimer();
-          rec.stop();
-        }
+        clearSilenceTimer();
+        clearPendingRestart();
+        shouldAutoRestart = false;
+        if (rec && isRecognizing) rec.stop();
+        else if (rec) rec.abort();
       } catch (e) {
         log("rec.stop exception: " + (e?.message || e));
+      }
+    }
+
+    function createRecognition() {
+      if (!SR) return null;
+      const r = new SR();
+      r.lang = $("lang")?.value || "zh-TW";
+      r.continuous = !IS_MOBILE;
+      r.interimResults = true;
+      r.maxAlternatives = 1;
+      return r;
+    }
+
+    function scheduleRecognitionRestart(reason, delayMs) {
+      clearPendingRestart();
+      if (!shouldAutoRestart || stoppedByKeyword || manualStopRequested) {
+        log("skip auto restart: " + reason);
+        return;
+      }
+      const delay = Math.max(delayMs || 0, IS_MOBILE ? 900 : 300);
+      pendingRestartTimer = setTimeout(() => {
+        pendingRestartTimer = null;
+        startRecognition(reason);
+      }, delay);
+      log(`schedule restart in ${delay}ms (${reason})`);
+    }
+
+    function attachRecognitionHandlers() {
+      if (!rec) return;
+
+      rec.onstart = () => {
+        sttStartTs = Date.now();
+        stoppedByKeyword = false;
+        manualStopRequested = false;
+        restartCount = 0;
+
+        if (sttRemainTimer) clearInterval(sttRemainTimer);
+        sttRemainTimer = setInterval(updateSttRemainUI, 250);
+        updateSttRemainUI();
+
+        isRecognizing = true;
+        setBadge("sttStatus", "listening", true);
+        setRecButton(true);
+
+        parts = [];
+        hasFinal = false;
+        $("interim").value = "";
+        clearSilenceTimer();
+        log("STT started" + (IS_MOBILE ? " [mobile mode]" : " [desktop mode]"));
+      };
+
+      rec.onresult = (e) => {
+        let interim = "";
+        let gotAny = false;
+
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const r = e.results[i];
+          const t = (r[0] && r[0].transcript) ? r[0].transcript.trim() : "";
+          if (!t) continue;
+
+          gotAny = true;
+          if (r.isFinal) { parts.push(t); hasFinal = true; }
+          else { interim += t; }
+        }
+
+        $("interim").value = interim;
+        if (gotAny) scheduleSend();
+      };
+
+      rec.onend = () => {
+        const elapsed = Date.now() - sttStartTs;
+        const t = parts.join(" ").replace(/\s+/g, " ").trim();
+        if (hasFinal && t && t !== lastSent) {
+          lastSent = t;
+          publishVoiceText(t);
+        }
+
+        parts = [];
+        hasFinal = false;
+        $("interim").value = "";
+
+        if (!manualStopRequested && !stoppedByKeyword && shouldAutoRestart && elapsed > 0 && elapsed < MIN_STT_MS) {
+          restartCount += 1;
+          log(`STT ended too early (${Math.round(elapsed / 1000)}s) → auto restart #${restartCount}`);
+          finishRecognitionUi();
+          scheduleRecognitionRestart("onend-too-early", Math.min(3000, (IS_MOBILE ? 1200 : 500) + restartCount * 250));
+          return;
+        }
+
+        finishRecognitionUi();
+        log("STT ended");
+      };
+
+      rec.onerror = (e) => {
+        const err = e?.error || "unknown";
+        setBadge("sttStatus", "error", false);
+        log("STT error: " + err);
+
+        isRecognizing = false;
+        setRecButton(false);
+
+        if (err === "service-not-allowed") {
+          shouldAutoRestart = false;
+          alert(
+            `📱 iPhone / iPad 可能無法使用瀏覽器語音辨識
+
+請嘗試：
+1) 用 Safari 直接開（不要加入主畫面）
+2) 設定 → Siri 與搜尋：開啟 Siri
+3) 設定 → 一般 → 鍵盤：啟用聽寫
+
+若仍失敗，表示 iOS Safari 限制，需改用伺服器端語音辨識（例如 Whisper）。`
+          );
+          return;
+        }
+
+        if (manualStopRequested || stoppedByKeyword || !shouldAutoRestart) {
+          log("STT error ignored for restart: " + err);
+          return;
+        }
+
+        if (["aborted", "audio-capture", "network", "no-speech"].includes(err)) {
+          restartCount += 1;
+          scheduleRecognitionRestart(`onerror-${err}`, Math.min(3500, (IS_MOBILE ? 1400 : 700) + restartCount * 300));
+        }
+      };
+    }
+
+    function startRecognition(reason = "manual") {
+      if (!SR) {
+        log("SpeechRecognition not supported");
+        return false;
+      }
+
+      const now = Date.now();
+      if (now - startGuardTs < 700) {
+        log("start skipped: guard active");
+        return false;
+      }
+      startGuardTs = now;
+      clearPendingRestart();
+      clearSilenceTimer();
+
+      try {
+        if (rec && isRecognizing) {
+          log("start skipped: already recognizing");
+          return false;
+        }
+
+        if (rec) {
+          try { rec.onstart = rec.onresult = rec.onend = rec.onerror = null; } catch { }
+        }
+
+        rec = createRecognition();
+        attachRecognitionHandlers();
+        rec.start();
+        log("rec.start requested: " + reason + (IS_MOBILE ? " [mobile]" : " [desktop]"));
+        return true;
+      } catch (e) {
+        log("rec.start exception: " + (e?.message || e));
+        scheduleRecognitionRestart("start-exception", IS_MOBILE ? 1400 : 700);
+        return false;
       }
     }
 
@@ -847,14 +1002,21 @@
       });
     }
 
-    function playSendOkFallbackTts() {
-      if (!speakerOn) return;
-      if (!("speechSynthesis" in window) || !window.SpeechSynthesisUtterance) {
-        log("fallback TTS not supported");
-        return;
-      }
+    function prepareSendOkAudio() {
       try {
-        if (!preferredVoice) refreshPreferredVoice();
+        if (sendOkAudioPrepared) return;
+        sendOkAudio.src = SEND_OK_AUDIO + "?v=" + Date.now();
+        sendOkAudio.load();
+        sendOkAudioPrepared = true;
+        log("audio prepared: send4you.mp3");
+      } catch (e) {
+        log("audio prepare error: " + (e?.message || e));
+      }
+    }
+
+    function fallbackSpeakSendOk() {
+      try {
+        if (!("speechSynthesis" in window) || !window.SpeechSynthesisUtterance) return;
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance("已經送出你的請求");
         const lang = $("lang").value || "zh-TW";
@@ -863,37 +1025,33 @@
         u.rate = lang.startsWith("zh") ? 0.95 : 1.0;
         u.pitch = lang.startsWith("zh") ? 0.98 : 1.0;
         u.volume = 1.0;
-        u.onstart = () => log("fallback TTS start");
-        u.onend = () => log("fallback TTS end");
-        u.onerror = (e) => log("fallback TTS error: " + (e?.error || "unknown"));
         window.speechSynthesis.speak(u);
+        log("fallback TTS for send-ok audio");
       } catch (e) {
-        log("fallback TTS exception: " + (e?.message || e));
+        log("fallback TTS failed: " + (e?.message || e));
       }
     }
 
     function playSendOkMp3() {
       try {
-        const url = normalizeAudioUrl(SEND_OK_AUDIO) + (normalizeAudioUrl(SEND_OK_AUDIO).includes("?") ? "&" : "?") + "v=" + Date.now();
-
+        const url = SEND_OK_AUDIO + "?v=" + Date.now();
         sendOkAudio.pause();
         sendOkAudio.removeAttribute("src");
         sendOkAudio.load();
         sendOkAudio.src = url;
         sendOkAudio.currentTime = 0;
-        sendOkAudio.load();
-
+        sendOkAudioPrepared = true;
         const p = sendOkAudio.play();
         if (p && typeof p.catch === "function") {
           p.catch(err => {
             log("audio play blocked: " + (err?.message || err) + " url=" + url);
-            playSendOkFallbackTts();
+            fallbackSpeakSendOk();
           });
         }
         log("play send4you.mp3 url=" + url);
       } catch (e) {
         log("audio play error: " + (e?.message || e));
-        playSendOkFallbackTts();
+        fallbackSpeakSendOk();
       }
     }
 
@@ -949,8 +1107,7 @@
         try { window.speechSynthesis.cancel(); } catch { }
       } else {
         await unlockTtsOnce();
-        // 預先載入回饋音效（避免先播出聲音）
-        primeSendOkAudio();
+        prepareSendOkAudio();
       }
       updateSpeakerUI();
     });
@@ -994,122 +1151,25 @@
     };
 
     $("btnRecToggle").onclick = async () => {
-      if (!rec) return alert("此瀏覽器不支援 SpeechRecognition。建議用 Chrome/Edge（桌機）");
+      if (!SR) return alert("此瀏覽器不支援 SpeechRecognition。建議用 Chrome/Edge（桌機）");
       if (!client || !client.connected) return alert("MQTT 尚未連線完成，請稍候。");
 
       if (isRecognizing) {
         log("User requested stop");
+        manualStopRequested = true;
         stoppedByKeyword = true;
         safeStopRecognition();
         return;
       }
 
-      // iOS：STT/TTS/Audio 需要 user gesture 解鎖
+      manualStopRequested = false;
+      stoppedByKeyword = false;
+      shouldAutoRestart = true;
+
       await unlockTtsOnce();
-      primeSendOkAudio(); // warm-up only
-
-      try {
-        rec.lang = $("lang").value;
-        rec.continuous = true;
-        rec.interimResults = true;
-        rec.maxAlternatives = 1;
-        rec.start();
-      } catch (e) {
-        log("rec.start exception: " + (e?.message || e));
-      }
+      prepareSendOkAudio();
+      startRecognition("user-click");
     };
-
-    if (rec) {
-      rec.onstart = () => {
-        sttStartTs = Date.now();
-        stoppedByKeyword = false;
-
-        if (sttRemainTimer) clearInterval(sttRemainTimer);
-        sttRemainTimer = setInterval(updateSttRemainUI, 250);
-        updateSttRemainUI();
-
-        isRecognizing = true;
-        setBadge("sttStatus", "listening", true);
-        setRecButton(true);
-
-        parts = [];
-        hasFinal = false;
-        $("interim").value = "";
-        clearSilenceTimer();
-        log("STT started");
-      };
-
-      rec.onresult = (e) => {
-        let interim = "";
-        let gotAny = false;
-
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const r = e.results[i];
-          const t = (r[0] && r[0].transcript) ? r[0].transcript.trim() : "";
-          if (!t) continue;
-
-          gotAny = true;
-          if (r.isFinal) { parts.push(t); hasFinal = true; }
-          else { interim += t; }
-        }
-
-        $("interim").value = interim;
-        if (gotAny) scheduleSend();
-      };
-
-      rec.onend = () => {
-        const elapsed = Date.now() - sttStartTs;
-
-        // ✅ 未滿 2 分鐘且不是停止詞/手動停止 → 自動重啟
-        if (!stoppedByKeyword && elapsed < MIN_STT_MS) {
-          log(`STT ended too early (${Math.round(elapsed / 1000)}s) → auto restart`);
-          setTimeout(() => { try { rec.start(); } catch { } }, 300);
-          return;
-        }
-
-        isRecognizing = false;
-        clearSilenceTimer();
-
-        if (sttRemainTimer) { clearInterval(sttRemainTimer); sttRemainTimer = null; }
-        $("sttRemain").style.display = "none";
-
-        setBadge("sttStatus", "idle", false);
-        setRecButton(false);
-        log("STT ended");
-
-        // 防漏：若剛好結束仍有 final，補送一次
-        const t = parts.join(" ").replace(/\s+/g, " ").trim();
-        if (hasFinal && t && t !== lastSent) {
-          lastSent = t;
-          publishVoiceText(t);
-        }
-
-        parts = [];
-        hasFinal = false;
-        $("interim").value = "";
-      };
-
-      rec.onerror = (e) => {
-        setBadge("sttStatus", "error", false);
-        log("STT error: " + e.error);
-
-        isRecognizing = false;
-        setRecButton(false);
-
-        if (e.error === "service-not-allowed") {
-          alert(
-            `📱 iPhone / iPad 可能無法使用瀏覽器語音辨識
-
-請嘗試：
-1) 用 Safari 直接開（不要加入主畫面）
-2) 設定 → Siri 與搜尋：開啟 Siri
-3) 設定 → 一般 → 鍵盤：啟用聽寫
-
-若仍失敗，表示 iOS Safari 限制，需改用伺服器端語音辨識（例如 Whisper）。`
-          );
-        }
-      };
-    }
 
     // =========================
     // Init
