@@ -517,9 +517,37 @@
     let sttRemainTimer = null;
 
     // ✅ 固定回饋音效：取代「已經送出你的請求」的 TTS
-    const SEND_OK_AUDIO = "http://3.114.197.59/tts/send4you.mp3";
-    const sendOkAudio = new Audio(SEND_OK_AUDIO);
+    const DEFAULT_SEND_OK_AUDIO = "http://test.prof-jj.com/tts/send4you.mp3";
+    let SEND_OK_AUDIO = DEFAULT_SEND_OK_AUDIO;
+    const sendOkAudio = new Audio();
     sendOkAudio.preload = "auto";
+
+    function normalizeAudioUrl(url) {
+      const raw = (url || "").toString().trim();
+      if (!raw) return DEFAULT_SEND_OK_AUDIO;
+      if (/^https?:\/\//i.test(raw)) return raw;
+      if (raw.startsWith("/")) return raw;
+      return "/tts/" + raw.replace(/^\/+/, "");
+    }
+
+    function applySendOkAudioParam() {
+      const params = new URLSearchParams(location.search);
+      const audioUrl = params.get("audio") || params.get("send_ok_audio") || DEFAULT_SEND_OK_AUDIO;
+      SEND_OK_AUDIO = normalizeAudioUrl(audioUrl);
+    }
+
+    function primeSendOkAudio() {
+      try {
+        sendOkAudio.pause();
+        sendOkAudio.removeAttribute("src");
+        sendOkAudio.load();
+        sendOkAudio.src = SEND_OK_AUDIO;
+        sendOkAudio.load();
+        log("audio primed: " + SEND_OK_AUDIO);
+      } catch (e) {
+        log("audio prime error: " + (e?.message || e));
+      }
+    }
 
     const $ = id => document.getElementById(id);
 
@@ -537,11 +565,12 @@
       if (dev_id) DEV_ID = dev_id;
       if (wsUrl) $("wsUrl").value = wsUrl;
       if (sub) SUB_TOPIC_T2V = sub;
+      applySendOkAudioParam();
 
       $("devIdLabel").textContent = DEV_ID;
       $("subLabel").textContent = SUB_TOPIC_T2V;
 
-      log(`params applied: dev_id=${DEV_ID} wsUrl=${$("wsUrl").value} sub=${SUB_TOPIC_T2V}`);
+      log(`params applied: dev_id=${DEV_ID} wsUrl=${$("wsUrl").value} sub=${SUB_TOPIC_T2V} audio=${SEND_OK_AUDIO}`);
     })();
 
     // =========================
@@ -818,16 +847,53 @@
       });
     }
 
+    function playSendOkFallbackTts() {
+      if (!speakerOn) return;
+      if (!("speechSynthesis" in window) || !window.SpeechSynthesisUtterance) {
+        log("fallback TTS not supported");
+        return;
+      }
+      try {
+        if (!preferredVoice) refreshPreferredVoice();
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance("已經送出你的請求");
+        const lang = $("lang").value || "zh-TW";
+        u.lang = lang;
+        if (preferredVoice) u.voice = preferredVoice;
+        u.rate = lang.startsWith("zh") ? 0.95 : 1.0;
+        u.pitch = lang.startsWith("zh") ? 0.98 : 1.0;
+        u.volume = 1.0;
+        u.onstart = () => log("fallback TTS start");
+        u.onend = () => log("fallback TTS end");
+        u.onerror = (e) => log("fallback TTS error: " + (e?.error || "unknown"));
+        window.speechSynthesis.speak(u);
+      } catch (e) {
+        log("fallback TTS exception: " + (e?.message || e));
+      }
+    }
+
     function playSendOkMp3() {
       try {
+        const url = normalizeAudioUrl(SEND_OK_AUDIO) + (normalizeAudioUrl(SEND_OK_AUDIO).includes("?") ? "&" : "?") + "v=" + Date.now();
+
+        sendOkAudio.pause();
+        sendOkAudio.removeAttribute("src");
+        sendOkAudio.load();
+        sendOkAudio.src = url;
         sendOkAudio.currentTime = 0;
+        sendOkAudio.load();
+
         const p = sendOkAudio.play();
         if (p && typeof p.catch === "function") {
-          p.catch(err => log("audio play blocked: " + (err?.message || err)));
+          p.catch(err => {
+            log("audio play blocked: " + (err?.message || err) + " url=" + url);
+            playSendOkFallbackTts();
+          });
         }
-        log("play send4you.mp3");
+        log("play send4you.mp3 url=" + url);
       } catch (e) {
         log("audio play error: " + (e?.message || e));
+        playSendOkFallbackTts();
       }
     }
 
@@ -883,8 +949,8 @@
         try { window.speechSynthesis.cancel(); } catch { }
       } else {
         await unlockTtsOnce();
-        // 預先把 mp3 也 warm 一次（有些 iOS 需要 user gesture 後才能播）
-        playSendOkMp3();
+        // 預先載入回饋音效（避免先播出聲音）
+        primeSendOkAudio();
       }
       updateSpeakerUI();
     });
@@ -940,7 +1006,7 @@
 
       // iOS：STT/TTS/Audio 需要 user gesture 解鎖
       await unlockTtsOnce();
-      playSendOkMp3(); // warm-up
+      primeSendOkAudio(); // warm-up only
 
       try {
         rec.lang = $("lang").value;
