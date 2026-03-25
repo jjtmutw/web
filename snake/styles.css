@@ -39,7 +39,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -215,10 +216,27 @@ input {
   transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
-.input-group input:focus {
+.input-group input:focus,
+.input-group select:focus {
   border-color: rgba(34, 211, 238, 0.6);
   box-shadow: var(--shadow-cyan);
   transform: translateY(-1px);
+}
+
+.input-group select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.62);
+  color: var(--text-main);
+  outline: none;
+  appearance: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.controller-mode-group {
+  margin-bottom: 16px;
 }
 
 .primary-button,

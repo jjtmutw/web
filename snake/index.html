@@ -56,8 +56,16 @@
         <section class="panel controller-panel">
           <div class="section-header">
             <p class="section-kicker">Controller</p>
-            <h2>USB Gamepad</h2>
+            <h2 id="controller-title">USB Gamepad</h2>
           </div>
+          <label class="input-group controller-mode-group">
+            <span>Controller type</span>
+            <select id="controller-mode-select">
+              <option value="keyboard">Keyboard</option>
+              <option value="usb">USB Gamepad</option>
+              <option value="magicsee">Magicsee</option>
+            </select>
+          </label>
           <div class="controller-status-card">
             <span class="stat-label">Device status</span>
             <strong id="controller-status" class="stat-value accent-cyan">Disconnected</strong>
@@ -69,7 +77,7 @@
             <button id="connect-controller-button" class="primary-button" type="button">Connect controller</button>
             <button id="disconnect-controller-button" class="ghost-button" type="button">Disconnect</button>
           </div>
-          <p class="controller-tip">
+          <p id="controller-tip" class="controller-tip">
             Supported input: D-pad, left analog stick, and standard gamepad buttons. Chrome or Edge is recommended.
           </p>
         </section>

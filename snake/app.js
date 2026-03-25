@@ -29,6 +29,42 @@ const KEY_TO_DIRECTION = {
   d: "right",
 };
 
+const CONTROLLER_MODES = {
+  keyboard: {
+    title: "Keyboard",
+    detail: "Use Arrow keys or WASD to control the snake. No external controller is required.",
+    tip: "Keyboard mode uses Arrow keys or WASD. You can still start the game with the on-screen button.",
+    waiting: "Keyboard mode is active. Use Arrow keys or WASD to play.",
+    missing: "Keyboard mode is active. Use Arrow keys or WASD to control the snake.",
+    disconnected: "Keyboard mode is active. Use Arrow keys or WASD to continue.",
+    cleared: "Controller selection was reset to keyboard mode.",
+    connectedLabel: "keyboard",
+    preferredMatcher: () => false,
+  },
+  usb: {
+    title: "USB Gamepad",
+    detail: "Plug your USB gamepad into the computer, then click connect or press any button on the pad.",
+    tip: "Supported input: D-pad, left analog stick, and standard gamepad buttons. Chrome or Edge is recommended.",
+    waiting: "No USB gamepad detected yet. Plug it in, press any button, then click connect again.",
+    missing: "No USB gamepad was found. Plug the controller in and press any button.",
+    disconnected: "USB gamepad disconnected. Plug it back in and press any button so the browser can detect it again.",
+    cleared: "Controller connection was cleared. Plug the USB gamepad in again when needed.",
+    connectedLabel: "USB gamepad",
+    preferredMatcher: () => true,
+  },
+  magicsee: {
+    title: "Magicsee",
+    detail: "Use this mode if your controller is Magicsee. Pair or attach it first, then click connect.",
+    tip: "Magicsee may appear as a gamepad or keyboard depending on its mode. If the browser sees it as a gamepad, D-pad and left stick will work here.",
+    waiting: "No Magicsee controller detected yet. Make sure it is connected, press any button, then click connect again.",
+    missing: "No Magicsee controller was found. Make sure it is powered on and recognized by the browser.",
+    disconnected: "Magicsee controller disconnected. Reconnect it and press any button so the browser can detect it again.",
+    cleared: "Controller connection was cleared. Reconnect Magicsee when needed.",
+    connectedLabel: "Magicsee controller",
+    preferredMatcher: (gamepad) => /magicsee/i.test(gamepad.id),
+  },
+};
+
 const state = {
   auth: {
     isLoggedIn: false,
@@ -51,9 +87,10 @@ const state = {
     timerId: null,
   },
   controller: {
+    mode: "keyboard",
     source: "keyboard",
     status: "Disconnected",
-    detail: "Plug your USB gamepad into the computer, then click connect or press any button on the pad.",
+    detail: CONTROLLER_MODES.keyboard.detail,
     gamepadIndex: null,
     gamepadName: "",
     frameId: null,
@@ -80,13 +117,20 @@ const elements = {
   overlayTitle: document.querySelector("#overlay-title"),
   overlayCopy: document.querySelector("#overlay-copy"),
   startButton: document.querySelector("#start-button"),
+  controllerTitle: document.querySelector("#controller-title"),
   controllerStatus: document.querySelector("#controller-status"),
   controllerDetail: document.querySelector("#controller-detail"),
+  controllerModeSelect: document.querySelector("#controller-mode-select"),
+  controllerTip: document.querySelector("#controller-tip"),
   connectControllerButton: document.querySelector("#connect-controller-button"),
   disconnectControllerButton: document.querySelector("#disconnect-controller-button"),
 };
 
 const ctx = elements.canvas.getContext("2d");
+
+function getControllerConfig() {
+  return CONTROLLER_MODES[state.controller.mode];
+}
 
 function getUserDataKey(username) {
   return `${STORAGE_KEYS.userPrefix}${username}`;
@@ -155,7 +199,7 @@ function formatDate(value) {
 
     const parts = formatter.formatToParts(new Date(value));
     const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-    return `${map.year}/${map.month}/${map.day} ${map.hour}:${map.minute} 台北時間`;
+    return `${map.year}/${map.month}/${map.day} ${map.hour}:${map.minute} Taipei Time`;
   } catch {
     return value;
   }
@@ -185,9 +229,17 @@ function syncStats() {
 }
 
 function syncControllerUi() {
+  const config = getControllerConfig();
+  elements.controllerTitle.textContent = config.title;
   elements.controllerStatus.textContent = state.controller.status;
   elements.controllerDetail.textContent = state.controller.detail;
-  elements.disconnectControllerButton.disabled = state.controller.gamepadIndex === null;
+  elements.controllerTip.textContent = config.tip;
+  elements.controllerModeSelect.value = state.controller.mode;
+  elements.connectControllerButton.disabled = state.controller.mode === "keyboard";
+  elements.connectControllerButton.style.opacity =
+    elements.connectControllerButton.disabled ? "0.55" : "1";
+  elements.disconnectControllerButton.disabled =
+    state.controller.mode === "keyboard" || state.controller.gamepadIndex === null;
   elements.disconnectControllerButton.style.opacity =
     elements.disconnectControllerButton.disabled ? "0.55" : "1";
 }
@@ -205,7 +257,7 @@ function updateOverlay(mode, score = 0) {
   if (mode === "locked") {
     elements.overlayTitle.textContent = "Sign in first";
     elements.overlayCopy.textContent =
-      "After sign-in, start the game and control the snake with keyboard or a USB gamepad.";
+      "After sign-in, start the game and control the snake with keyboard or your selected controller.";
     elements.startButton.textContent = "Sign in to play";
     elements.startButton.disabled = true;
     return;
@@ -214,7 +266,7 @@ function updateOverlay(mode, score = 0) {
   if (mode === "ready") {
     elements.overlayTitle.textContent = "Ready";
     elements.overlayCopy.textContent =
-      "Use arrow keys, WASD, or your USB gamepad to control the snake.";
+      "Use arrow keys, WASD, or the controller mode you selected to control the snake.";
     elements.startButton.textContent = "Start game";
     elements.startButton.disabled = false;
     return;
@@ -465,11 +517,7 @@ function queueDirection(directionName, source = "keyboard") {
 
   state.snake.nextDirection = { ...next };
   if (source !== "keyboard") {
-    updateControllerStatus(
-      "Connected",
-      `${source} sent ${directionName.toUpperCase()} input.`,
-      source
-    );
+    updateControllerStatus("Connected", `${source} sent ${directionName.toUpperCase()} input.`, source);
   }
 }
 
@@ -536,11 +584,7 @@ function isStartButtonPressed(gamepad) {
     return false;
   }
 
-  return Boolean(
-    gamepad.buttons[0]?.pressed ||
-    gamepad.buttons[9]?.pressed ||
-    gamepad.buttons[7]?.pressed
-  );
+  return Boolean(gamepad.buttons[0]?.pressed || gamepad.buttons[9]?.pressed || gamepad.buttons[7]?.pressed);
 }
 
 function findPreferredGamepad() {
@@ -549,7 +593,8 @@ function findPreferredGamepad() {
     return null;
   }
 
-  return gamepads[0];
+  const config = getControllerConfig();
+  return gamepads.find((gamepad) => config.preferredMatcher(gamepad)) || null;
 }
 
 function stopGamepadPolling() {
@@ -565,15 +610,12 @@ function pollGamepad() {
     : findPreferredGamepad();
 
   if (!gamepad) {
+    const config = getControllerConfig();
     state.controller.gamepadIndex = null;
     state.controller.gamepadName = "";
     state.controller.lastGamepadDirection = null;
     state.controller.lastStartPressed = false;
-    updateControllerStatus(
-      "Disconnected",
-      "No USB gamepad was found. Plug the controller in and press any button.",
-      "keyboard"
-    );
+    updateControllerStatus("Disconnected", config.missing, "keyboard");
     stopGamepadPolling();
     return;
   }
@@ -600,16 +642,23 @@ function startGamepadPolling() {
   if (state.controller.frameId) {
     return;
   }
+
   state.controller.frameId = window.requestAnimationFrame(pollGamepad);
 }
 
 function handleGamepadConnected(event) {
   const gamepad = event.gamepad;
+  const config = getControllerConfig();
+
+  if (!config.preferredMatcher(gamepad)) {
+    return;
+  }
+
   state.controller.gamepadIndex = gamepad.index;
   state.controller.gamepadName = gamepad.id || "Gamepad";
   updateControllerStatus(
     "Connected",
-    `Detected USB gamepad: ${state.controller.gamepadName}. Use D-pad or left stick. Press A or Start to begin.`,
+    `Detected ${config.connectedLabel}: ${state.controller.gamepadName}. Use D-pad or left stick. Press A or Start to begin.`,
     `gamepad ${state.controller.gamepadName}`
   );
   startGamepadPolling();
@@ -620,51 +669,57 @@ function handleGamepadDisconnected(event) {
     return;
   }
 
+  const config = getControllerConfig();
   state.controller.gamepadIndex = null;
   state.controller.gamepadName = "";
   state.controller.lastGamepadDirection = null;
   state.controller.lastStartPressed = false;
-  updateControllerStatus(
-    "Disconnected",
-    "USB gamepad disconnected. Plug it back in and press any button so the browser can detect it again.",
-    "keyboard"
-  );
+  updateControllerStatus("Disconnected", config.disconnected, "keyboard");
   stopGamepadPolling();
 }
 
 async function connectController() {
+  if (state.controller.mode === "keyboard") {
+    updateControllerStatus("Ready", CONTROLLER_MODES.keyboard.waiting, "keyboard");
+    return;
+  }
+
   const preferredGamepad = findPreferredGamepad();
+  const config = getControllerConfig();
+
   if (preferredGamepad) {
     state.controller.gamepadIndex = preferredGamepad.index;
     state.controller.gamepadName = preferredGamepad.id || "Gamepad";
     updateControllerStatus(
       "Connected",
-      `Using detected USB gamepad: ${state.controller.gamepadName}. Press A or Start to begin.`,
+      `Using detected ${config.connectedLabel}: ${state.controller.gamepadName}. Press A or Start to begin.`,
       `gamepad ${state.controller.gamepadName}`
     );
     startGamepadPolling();
     return;
   }
 
-  updateControllerStatus(
-    "Waiting",
-    "No USB gamepad detected yet. Plug it in, press any button, then click connect again.",
-    "keyboard"
-  );
+  updateControllerStatus("Waiting", config.waiting, "keyboard");
 }
 
 async function disconnectController() {
+  const config = getControllerConfig();
   stopGamepadPolling();
   state.controller.gamepadIndex = null;
   state.controller.gamepadName = "";
   state.controller.lastGamepadDirection = null;
   state.controller.lastStartPressed = false;
+  updateControllerStatus("Disconnected", config.cleared, "keyboard");
+}
 
-  updateControllerStatus(
-    "Disconnected",
-    "Controller connection was cleared. Plug the USB gamepad in again when needed.",
-    "keyboard"
-  );
+function handleControllerModeChange() {
+  state.controller.mode = elements.controllerModeSelect.value;
+  state.controller.detail = getControllerConfig().detail;
+  disconnectController();
+  if (state.controller.mode === "keyboard") {
+    updateControllerStatus("Ready", CONTROLLER_MODES.keyboard.detail, "keyboard");
+  }
+  syncControllerUi();
 }
 
 function bootstrap() {
@@ -702,6 +757,7 @@ elements.connectControllerButton.addEventListener("click", () => {
 elements.disconnectControllerButton.addEventListener("click", () => {
   disconnectController();
 });
+elements.controllerModeSelect.addEventListener("change", handleControllerModeChange);
 
 window.addEventListener("keydown", handleKeydown);
 window.addEventListener("gamepadconnected", handleGamepadConnected);
