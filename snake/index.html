@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
 </head>
+
 <body>
   <div class="background-layer" aria-hidden="true">
     <div class="orb orb-cyan"></div>
@@ -19,9 +21,9 @@
   <main class="shell">
     <section class="panel hero-panel">
       <p class="eyebrow">ANTIGRAVITY ARCADE</p>
-      <h1>JJ lab Snake game</h1>
+      <h1>JJ Lab Snake Game</h1>
       <p class="hero-copy">
-        Sign in to save your scores and play with keyboard, gamepad, or a paired Magicsee R1 controller.
+        Sign in to save your scores and play with keyboard or a USB gamepad.
       </p>
     </section>
 
@@ -43,14 +45,8 @@
           <form id="login-form" class="login-form">
             <label class="input-group">
               <span>Username</span>
-              <input
-                id="username-input"
-                name="username"
-                type="text"
-                maxlength="24"
-                autocomplete="off"
-                placeholder="Enter your username"
-              >
+              <input id="username-input" name="username" type="text" maxlength="24" autocomplete="off"
+                placeholder="Enter your username">
             </label>
             <button class="primary-button" type="submit">Sign in and play</button>
           </form>
@@ -60,13 +56,13 @@
         <section class="panel controller-panel">
           <div class="section-header">
             <p class="section-kicker">Controller</p>
-            <h2>Magicsee R1</h2>
+            <h2>USB Gamepad</h2>
           </div>
           <div class="controller-status-card">
             <span class="stat-label">Device status</span>
             <strong id="controller-status" class="stat-value accent-cyan">Disconnected</strong>
             <p id="controller-detail" class="controller-detail">
-              Pair Magicsee R1 in Windows Bluetooth settings first, then return here and connect it.
+              Plug your USB gamepad into the computer, then click connect or press any button on the pad.
             </p>
           </div>
           <div class="controller-actions">
@@ -74,7 +70,7 @@
             <button id="disconnect-controller-button" class="ghost-button" type="button">Disconnect</button>
           </div>
           <p class="controller-tip">
-            Supported input paths: Keyboard, Gamepad API, and WebHID. Chrome or Edge is recommended.
+            Supported input: D-pad, left analog stick, and standard gamepad buttons. Chrome or Edge is recommended.
           </p>
         </section>
 
@@ -124,14 +120,15 @@
         <div class="game-frame">
           <div id="game-overlay" class="game-overlay">
             <p id="overlay-title" class="overlay-title">Sign in first</p>
-            <p id="overlay-copy" class="overlay-copy">After sign-in, start the game and control the snake with keyboard or Magicsee R1.</p>
+            <p id="overlay-copy" class="overlay-copy">After sign-in, start the game and control the snake with keyboard
+              or a USB gamepad.</p>
             <button id="start-button" class="primary-button" type="button">Start game</button>
           </div>
           <canvas id="game-canvas" width="420" height="420" aria-label="Snake game canvas"></canvas>
         </div>
         <div class="game-footnote">
-          <span>Controls: Arrow keys / WASD / Magicsee R1</span>
-          <span>If Magicsee R1 is paired to the system, its D-pad or stick should move the snake.</span>
+          <span>Controls: Arrow keys / WASD / USB gamepad</span>
+          <span>Use the D-pad or left stick to move. Press A or Start to begin a round.</span>
         </div>
       </section>
     </section>
@@ -139,4 +136,5 @@
 
   <script src="./app.js"></script>
 </body>
+
 </html>

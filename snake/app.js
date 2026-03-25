@@ -53,12 +53,12 @@ const state = {
   controller: {
     source: "keyboard",
     status: "Disconnected",
-    detail: "Pair Magicsee R1 in Windows Bluetooth settings first, then return here and connect it.",
-    hidDevice: null,
+    detail: "Plug your USB gamepad into the computer, then click connect or press any button on the pad.",
     gamepadIndex: null,
     gamepadName: "",
     frameId: null,
     lastGamepadDirection: null,
+    lastStartPressed: false,
   },
 };
 
@@ -178,8 +178,7 @@ function syncStats() {
 function syncControllerUi() {
   elements.controllerStatus.textContent = state.controller.status;
   elements.controllerDetail.textContent = state.controller.detail;
-  elements.disconnectControllerButton.disabled =
-    !state.controller.hidDevice && state.controller.gamepadIndex === null;
+  elements.disconnectControllerButton.disabled = state.controller.gamepadIndex === null;
   elements.disconnectControllerButton.style.opacity =
     elements.disconnectControllerButton.disabled ? "0.55" : "1";
 }
@@ -197,7 +196,7 @@ function updateOverlay(mode, score = 0) {
   if (mode === "locked") {
     elements.overlayTitle.textContent = "Sign in first";
     elements.overlayCopy.textContent =
-      "After sign-in, start the game and control the snake with keyboard or Magicsee R1.";
+      "After sign-in, start the game and control the snake with keyboard or a USB gamepad.";
     elements.startButton.textContent = "Sign in to play";
     elements.startButton.disabled = true;
     return;
@@ -206,7 +205,7 @@ function updateOverlay(mode, score = 0) {
   if (mode === "ready") {
     elements.overlayTitle.textContent = "Ready";
     elements.overlayCopy.textContent =
-      "Use arrow keys, WASD, or your paired Magicsee R1 to control the snake.";
+      "Use arrow keys, WASD, or your USB gamepad to control the snake.";
     elements.startButton.textContent = "Start game";
     elements.startButton.disabled = false;
     return;
@@ -523,14 +522,25 @@ function getGamepadDirection(gamepad) {
   return null;
 }
 
+function isStartButtonPressed(gamepad) {
+  if (!gamepad) {
+    return false;
+  }
+
+  return Boolean(
+    gamepad.buttons[0]?.pressed ||
+    gamepad.buttons[9]?.pressed ||
+    gamepad.buttons[7]?.pressed
+  );
+}
+
 function findPreferredGamepad() {
   const gamepads = navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) : [];
   if (!gamepads.length) {
     return null;
   }
 
-  const named = gamepads.find((gamepad) => /magicsee|r1/i.test(gamepad.id));
-  return named || gamepads[0];
+  return gamepads[0];
 }
 
 function stopGamepadPolling() {
@@ -549,13 +559,12 @@ function pollGamepad() {
     state.controller.gamepadIndex = null;
     state.controller.gamepadName = "";
     state.controller.lastGamepadDirection = null;
-    if (!state.controller.hidDevice) {
-      updateControllerStatus(
-        "Disconnected",
-        "No connected gamepad was found. Make sure Magicsee R1 is paired and awake.",
-        "keyboard"
-      );
-    }
+    state.controller.lastStartPressed = false;
+    updateControllerStatus(
+      "Disconnected",
+      "No USB gamepad was found. Plug the controller in and press any button.",
+      "keyboard"
+    );
     stopGamepadPolling();
     return;
   }
@@ -568,6 +577,12 @@ function pollGamepad() {
     queueDirection(directionName, `gamepad ${state.controller.gamepadName}`);
   }
   state.controller.lastGamepadDirection = directionName;
+
+  const startPressed = isStartButtonPressed(gamepad);
+  if (startPressed && !state.controller.lastStartPressed && !state.game.isPlaying && state.auth.isLoggedIn) {
+    startGame();
+  }
+  state.controller.lastStartPressed = startPressed;
 
   state.controller.frameId = window.requestAnimationFrame(pollGamepad);
 }
@@ -585,7 +600,7 @@ function handleGamepadConnected(event) {
   state.controller.gamepadName = gamepad.id || "Gamepad";
   updateControllerStatus(
     "Connected",
-    `Detected gamepad: ${state.controller.gamepadName}. You can use its D-pad or analog stick.`,
+    `Detected USB gamepad: ${state.controller.gamepadName}. Use D-pad or left stick. Press A or Start to begin.`,
     `gamepad ${state.controller.gamepadName}`
   );
   startGamepadPolling();
@@ -599,47 +614,13 @@ function handleGamepadDisconnected(event) {
   state.controller.gamepadIndex = null;
   state.controller.gamepadName = "";
   state.controller.lastGamepadDirection = null;
-  if (!state.controller.hidDevice) {
-    updateControllerStatus(
-      "Disconnected",
-      "Gamepad disconnected. Press a direction on Magicsee R1 after reconnecting so the browser can detect it again.",
-      "keyboard"
-    );
-  }
+  state.controller.lastStartPressed = false;
+  updateControllerStatus(
+    "Disconnected",
+    "USB gamepad disconnected. Plug it back in and press any button so the browser can detect it again.",
+    "keyboard"
+  );
   stopGamepadPolling();
-}
-
-function decodeHidDirection(dataView) {
-  if (!dataView || dataView.byteLength === 0) {
-    return null;
-  }
-
-  const bytes = [];
-  for (let index = 0; index < dataView.byteLength; index += 1) {
-    bytes.push(dataView.getUint8(index));
-  }
-
-  if (bytes.includes(0x52) || bytes.includes(0x01)) {
-    return "up";
-  }
-  if (bytes.includes(0x51) || bytes.includes(0x02)) {
-    return "down";
-  }
-  if (bytes.includes(0x50) || bytes.includes(0x03)) {
-    return "left";
-  }
-  if (bytes.includes(0x4f) || bytes.includes(0x04)) {
-    return "right";
-  }
-
-  return null;
-}
-
-function handleHidInput(event) {
-  const directionName = decodeHidDirection(event.data);
-  if (directionName) {
-    queueDirection(directionName, `hid ${state.controller.hidDevice?.productName || "device"}`);
-  }
 }
 
 async function connectController() {
@@ -649,65 +630,18 @@ async function connectController() {
     state.controller.gamepadName = preferredGamepad.id || "Gamepad";
     updateControllerStatus(
       "Connected",
-      `Using detected gamepad: ${state.controller.gamepadName}.`,
+      `Using detected USB gamepad: ${state.controller.gamepadName}. Press A or Start to begin.`,
       `gamepad ${state.controller.gamepadName}`
     );
     startGamepadPolling();
     return;
   }
 
-  if (!("hid" in navigator)) {
-    updateControllerStatus(
-      "Unsupported",
-      "This browser does not support WebHID. Use the latest Chrome or Edge, or pair Magicsee R1 as a keyboard/gamepad.",
-      "keyboard"
-    );
-    return;
-  }
-
-  try {
-    const devices = await navigator.hid.requestDevice({
-      filters: [
-        { usagePage: 0x01, usage: 0x04 },
-        { usagePage: 0x01, usage: 0x05 },
-        { usagePage: 0x01, usage: 0x06 },
-        { usagePage: 0x0c },
-      ],
-    });
-
-    if (!devices.length) {
-      updateControllerStatus(
-        "No device selected",
-        "No HID device was selected. If Magicsee R1 works as a keyboard, you can use it without WebHID.",
-        "keyboard"
-      );
-      return;
-    }
-
-    const [device] = devices;
-    if (!device.opened) {
-      await device.open();
-    }
-
-    if (state.controller.hidDevice) {
-      state.controller.hidDevice.removeEventListener("inputreport", handleHidInput);
-    }
-
-    state.controller.hidDevice = device;
-    device.addEventListener("inputreport", handleHidInput);
-
-    updateControllerStatus(
-      "Connected",
-      `Connected HID device: ${device.productName || "Unknown device"}. If direction input does not react, use keyboard or gamepad mode on the device.`,
-      `hid ${device.productName || "device"}`
-    );
-  } catch (error) {
-    updateControllerStatus(
-      "Connection failed",
-      `Could not connect controller: ${error instanceof Error ? error.message : String(error)}`,
-      "keyboard"
-    );
-  }
+  updateControllerStatus(
+    "Waiting",
+    "No USB gamepad detected yet. Plug it in, press any button, then click connect again.",
+    "keyboard"
+  );
 }
 
 async function disconnectController() {
@@ -715,43 +649,12 @@ async function disconnectController() {
   state.controller.gamepadIndex = null;
   state.controller.gamepadName = "";
   state.controller.lastGamepadDirection = null;
-
-  if (state.controller.hidDevice) {
-    state.controller.hidDevice.removeEventListener("inputreport", handleHidInput);
-    if (state.controller.hidDevice.opened) {
-      await state.controller.hidDevice.close();
-    }
-    state.controller.hidDevice = null;
-  }
+  state.controller.lastStartPressed = false;
 
   updateControllerStatus(
     "Disconnected",
-    "Controller connection was cleared. Pair and reconnect Magicsee R1 when needed.",
+    "Controller connection was cleared. Plug the USB gamepad in again when needed.",
     "keyboard"
-  );
-}
-
-async function restoreHidDevices() {
-  if (!("hid" in navigator) || !navigator.hid.getDevices) {
-    return;
-  }
-
-  const devices = await navigator.hid.getDevices();
-  const preferred = devices.find((device) => /magicsee|r1/i.test(device.productName || "")) || devices[0];
-  if (!preferred) {
-    return;
-  }
-
-  if (!preferred.opened) {
-    await preferred.open();
-  }
-
-  state.controller.hidDevice = preferred;
-  preferred.addEventListener("inputreport", handleHidInput);
-  updateControllerStatus(
-    "Connected",
-    `Restored HID device: ${preferred.productName || "Unknown device"}.`,
-    `hid ${preferred.productName || "device"}`
   );
 }
 
@@ -770,8 +673,6 @@ function bootstrap() {
   } else {
     updateOverlay("locked");
   }
-
-  restoreHidDevices().catch(() => {});
 
   const initialGamepad = findPreferredGamepad();
   if (initialGamepad) {
