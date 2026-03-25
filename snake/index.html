@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antigravity Snake Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="background-layer" aria-hidden="true">
+    <div class="orb orb-cyan"></div>
+    <div class="orb orb-fuchsia"></div>
+    <div class="grid-glow"></div>
+  </div>
+
+  <main class="shell">
+    <section class="panel hero-panel">
+      <p class="eyebrow">ANTIGRAVITY ARCADE</p>
+      <h1>JJ lab Snake game</h1>
+      <p class="hero-copy">
+        Sign in to save your scores and play with keyboard, gamepad, or a paired Magicsee R1 controller.
+      </p>
+    </section>
+
+    <section class="topbar panel">
+      <div class="status-block">
+        <span class="status-label">Current Session</span>
+        <div id="user-status" class="status-content">Not signed in</div>
+      </div>
+      <button id="logout-button" class="ghost-button" type="button">Log out</button>
+    </section>
+
+    <section class="content-grid">
+      <div class="column-left">
+        <section class="panel login-panel">
+          <div class="section-header">
+            <p class="section-kicker">User Access</p>
+            <h2>Sign In</h2>
+          </div>
+          <form id="login-form" class="login-form">
+            <label class="input-group">
+              <span>Username</span>
+              <input
+                id="username-input"
+                name="username"
+                type="text"
+                maxlength="24"
+                autocomplete="off"
+                placeholder="Enter your username"
+              >
+            </label>
+            <button class="primary-button" type="submit">Sign in and play</button>
+          </form>
+          <p id="login-message" class="inline-message" role="status"></p>
+        </section>
+
+        <section class="panel controller-panel">
+          <div class="section-header">
+            <p class="section-kicker">Controller</p>
+            <h2>Magicsee R1</h2>
+          </div>
+          <div class="controller-status-card">
+            <span class="stat-label">Device status</span>
+            <strong id="controller-status" class="stat-value accent-cyan">Disconnected</strong>
+            <p id="controller-detail" class="controller-detail">
+              Pair Magicsee R1 in Windows Bluetooth settings first, then return here and connect it.
+            </p>
+          </div>
+          <div class="controller-actions">
+            <button id="connect-controller-button" class="primary-button" type="button">Connect controller</button>
+            <button id="disconnect-controller-button" class="ghost-button" type="button">Disconnect</button>
+          </div>
+          <p class="controller-tip">
+            Supported input paths: Keyboard, Gamepad API, and WebHID. Chrome or Edge is recommended.
+          </p>
+        </section>
+
+        <section class="panel stats-panel">
+          <div class="section-header">
+            <p class="section-kicker">Performance</p>
+            <h2>Player Stats</h2>
+          </div>
+          <div class="stats-grid">
+            <article class="stat-card">
+              <span class="stat-label">Player</span>
+              <strong id="stat-username" class="stat-value">-</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Login time</span>
+              <strong id="stat-login-time" class="stat-value">-</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Current score</span>
+              <strong id="stat-current-score" class="stat-value accent-cyan">0</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Best score</span>
+              <strong id="stat-best-score" class="stat-value accent-fuchsia">0</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Last score</span>
+              <strong id="stat-last-score" class="stat-value">0</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Games played</span>
+              <strong id="stat-games-played" class="stat-value">0</strong>
+            </article>
+          </div>
+          <div class="meta-row">
+            <span>Last updated</span>
+            <strong id="stat-updated-at">-</strong>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel game-panel">
+        <div class="section-header">
+          <p class="section-kicker">Game Zone</p>
+          <h2>Snake Canvas</h2>
+        </div>
+        <div class="game-frame">
+          <div id="game-overlay" class="game-overlay">
+            <p id="overlay-title" class="overlay-title">Sign in first</p>
+            <p id="overlay-copy" class="overlay-copy">After sign-in, start the game and control the snake with keyboard or Magicsee R1.</p>
+            <button id="start-button" class="primary-button" type="button">Start game</button>
+          </div>
+          <canvas id="game-canvas" width="420" height="420" aria-label="Snake game canvas"></canvas>
+        </div>
+        <div class="game-footnote">
+          <span>Controls: Arrow keys / WASD / Magicsee R1</span>
+          <span>If Magicsee R1 is paired to the system, its D-pad or stick should move the snake.</span>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
