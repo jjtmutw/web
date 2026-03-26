@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antigravity Pac-Man Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="background-layer" aria-hidden="true">
+    <div class="orb orb-cyan"></div>
+    <div class="orb orb-fuchsia"></div>
+    <div class="grid-glow"></div>
+  </div>
+
+  <main class="shell">
+    <section class="panel hero-panel reveal">
+      <p class="eyebrow">ANTIGRAVITY ARCADE</p>
+      <div class="hero-row">
+        <div>
+          <h1>Pac-Man Neon Portal</h1>
+          <p class="hero-copy">
+            玻璃質感的登入入口、霓虹迷宮與本地成績檔案整合在同一頁。先登入，再進入深海藍的 Pac-Man 戰局。
+          </p>
+        </div>
+        <div class="hero-meta">
+          <span class="pill">Local Login</span>
+          <span class="pill">Score History</span>
+          <span class="pill">Canvas Arcade</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="topbar panel reveal">
+      <div class="status-block">
+        <span class="status-label">Current Session</span>
+        <div id="user-status" class="status-content">尚未登入</div>
+      </div>
+      <div class="topbar-actions">
+        <label class="audio-style-group" for="audio-style-select">
+          <span>音效風格</span>
+          <select id="audio-style-select">
+            <option value="classic">Classic</option>
+            <option value="modern">Modern</option>
+          </select>
+        </label>
+        <button id="audio-toggle-button" class="ghost-button" type="button" aria-pressed="true">音效：開</button>
+        <button id="logout-button" class="ghost-button" type="button">登出</button>
+      </div>
+    </section>
+
+    <section class="content-grid">
+      <div class="column-left">
+        <section class="panel login-panel reveal">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">User Access</p>
+              <h2>用戶登入</h2>
+            </div>
+          </div>
+          <form id="login-form" class="login-form">
+            <label class="input-group">
+              <span>使用者名稱</span>
+              <input
+                id="username-input"
+                name="username"
+                type="text"
+                maxlength="24"
+                autocomplete="off"
+                placeholder="請輸入暱稱後開始遊戲"
+              >
+            </label>
+            <button class="primary-button" type="submit">登入並準備遊戲</button>
+          </form>
+          <p id="login-message" class="inline-message" role="status"></p>
+        </section>
+
+        <section class="panel controller-panel reveal">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Controller</p>
+              <h2 id="controller-title">Keyboard</h2>
+            </div>
+          </div>
+          <label class="input-group controller-mode-group">
+            <span>控制裝置</span>
+            <select id="controller-mode-select">
+              <option value="keyboard">Keyboard</option>
+              <option value="usb">USB Gamepad</option>
+              <option value="magicsee">Magicsee</option>
+            </select>
+          </label>
+          <div class="controller-status-card">
+            <span class="stat-label">裝置狀態</span>
+            <strong id="controller-status" class="stat-value accent-cyan">Ready</strong>
+            <p id="controller-detail" class="controller-detail">
+              鍵盤模式已啟用，可直接用方向鍵或 WASD 控制 Pac-Man。
+            </p>
+          </div>
+          <div class="controller-actions">
+            <button id="connect-controller-button" class="primary-button" type="button">連接控制器</button>
+            <button id="disconnect-controller-button" class="ghost-button" type="button">中斷連接</button>
+          </div>
+          <p id="controller-tip" class="controller-tip">
+            鍵盤模式可直接開始；USB 與 Magicsee 模式使用瀏覽器 Gamepad API 偵測控制器。
+          </p>
+        </section>
+
+        <section class="panel stats-panel reveal">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Performance</p>
+              <h2>數據面板</h2>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <article class="stat-card">
+              <span class="stat-label">使用者</span>
+              <strong id="stat-username" class="stat-value">-</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">登入時間</span>
+              <strong id="stat-login-time" class="stat-value">-</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">目前分數</span>
+              <strong id="stat-current-score" class="stat-value accent-cyan">0</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">最高分</span>
+              <strong id="stat-best-score" class="stat-value accent-fuchsia">0</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">最近一局</span>
+              <strong id="stat-last-score" class="stat-value">0</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">已玩局數</span>
+              <strong id="stat-games-played" class="stat-value">0</strong>
+            </article>
+          </div>
+
+          <div class="meta-grid">
+            <div class="meta-row">
+              <span>最近活躍</span>
+              <strong id="stat-updated-at">-</strong>
+            </div>
+            <div class="meta-row">
+              <span>最近完成時間</span>
+              <strong id="stat-last-finished-at">-</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel history-panel reveal">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Recent Archive</p>
+              <h2>歷史紀錄</h2>
+            </div>
+          </div>
+          <div id="history-list" class="history-list">
+            <p class="history-empty">登入後會顯示最近對戰與登入紀錄。</p>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel game-panel reveal">
+        <div class="section-header">
+          <div>
+            <p class="section-kicker">Game Zone</p>
+            <h2>Pac-Man Arena</h2>
+          </div>
+          <div class="game-badges">
+            <span class="mini-badge" id="lives-badge">Lives 3</span>
+            <span class="mini-badge" id="pellets-badge">Pellets 0</span>
+          </div>
+        </div>
+
+        <div class="game-frame">
+          <div id="game-overlay" class="game-overlay">
+            <p id="overlay-title" class="overlay-title">請先登入</p>
+            <p id="overlay-copy" class="overlay-copy">登入後即可啟動 Pac-Man。使用方向鍵或 WASD 移動，吃光所有豆子並避開鬼魂。</p>
+            <button id="start-button" class="primary-button" type="button">開始遊戲</button>
+          </div>
+          <canvas id="game-canvas" width="420" height="420" aria-label="Pac-Man game canvas"></canvas>
+        </div>
+
+        <div class="game-footnote">
+          <span>控制方式：Keyboard / USB Gamepad / Magicsee</span>
+          <span>鍵盤使用方向鍵或 WASD；控制器可用方向鍵區、左類比或常見開始鍵</span>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
