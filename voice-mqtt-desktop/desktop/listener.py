@@ -13,6 +13,7 @@ import pyperclip
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 CONFIG_PATH = BASE_DIR / "config.json"
+MINIMIZE_ALL_TRIGGER = "注意老闆來了"
 
 
 logging.basicConfig(
@@ -70,6 +71,11 @@ def paste_text(text: str, append_enter: bool, paste_hotkey: str) -> None:
         keyboard.send("enter")
 
 
+def minimize_all_windows() -> None:
+    logging.info("Trigger detected: minimizing all windows.")
+    keyboard.send("windows+m")
+
+
 def parse_payload(payload: bytes, append_enter_default: bool) -> tuple[str, bool]:
     raw_text = payload.decode("utf-8", errors="replace").strip()
     if not raw_text:
@@ -107,6 +113,11 @@ def on_message(client: mqtt.Client, userdata: dict[str, Any], message: mqtt.MQTT
         return
 
     logging.info("Received text on %s: %s", message.topic, text)
+
+    if MINIMIZE_ALL_TRIGGER in text:
+        minimize_all_windows()
+        return
+
     paste_text(text, append_enter, paste_hotkey)
 
 
