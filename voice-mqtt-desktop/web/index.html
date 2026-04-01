@@ -19,9 +19,9 @@
     <main class="shell">
       <section class="hero card">
         <p class="eyebrow">VOICE TO DESKTOP</p>
-        <h1>手機語音或掃碼，透過 MQTT 直接送到電腦</h1>
+        <h1>手機輸入，電腦即貼</h1>
         <p class="lead">
-          你可以用手機語音辨識，或直接掃描 QR Code / barcode。辨識完成後，內容會送到 MQTT，桌面端 Python 程式收到後就貼到目前游標位置。
+          用手機說話或掃碼，內容會立即送到電腦目前游標位置。
         </p>
       </section>
 
@@ -58,7 +58,7 @@
           </div>
 
           <p id="mqtt-status" class="muted">
-            請輸入支援 WebSocket 的 MQTT Broker，例如 EMQX、HiveMQ 或 Mosquitto with websockets。
+            請填入支援 WebSocket 的 MQTT 位址。
           </p>
         </section>
 
@@ -83,7 +83,7 @@
           </div>
 
           <p id="speech-status" class="muted">
-            語音辨識使用手機瀏覽器內建功能。
+            使用手機瀏覽器的內建語音辨識。
           </p>
         </section>
 
@@ -95,7 +95,7 @@
 
           <div id="scanner" class="scanner-shell"></div>
           <p id="scan-status" class="muted">
-            使用手機相機掃描 QR Code、EAN、Code 128 等常見條碼。
+            可掃描 QR Code 與常見條碼。
           </p>
 
           <div class="button-row">
@@ -104,7 +104,7 @@
           </div>
 
           <p class="muted">
-            掃到內容後會直接帶入下方的待發送文字區，並以兩聲嗶聲加上閃爍提示通知成功。
+            掃到內容後會直接帶入下方文字區，並播放提示音。
           </p>
         </section>
 
@@ -130,7 +130,7 @@
           </div>
 
           <p class="muted">
-            電腦端程式會把收到的文字放進剪貼簿，再貼到目前焦點位置。
+            電腦端會自動貼到目前焦點位置。
           </p>
         </section>
 
