@@ -7,6 +7,7 @@ const state = {
   scanner: null,
   isScanning: false,
   lastScanText: "",
+  audioContext: null,
 };
 
 const elements = {
@@ -86,6 +87,49 @@ function setSpeechStatus(text) {
 
 function setScanStatus(text) {
   elements.scanStatus.textContent = text;
+}
+
+function getAudioContext() {
+  if (!window.AudioContext && !window.webkitAudioContext) {
+    return null;
+  }
+
+  if (!state.audioContext) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    state.audioContext = new AudioContextClass();
+  }
+
+  return state.audioContext;
+}
+
+async function playScanSuccessBeep() {
+  const audioContext = getAudioContext();
+  if (!audioContext) {
+    addLog("此瀏覽器不支援提示音播放。", "error");
+    return;
+  }
+
+  if (audioContext.state === "suspended") {
+    await audioContext.resume();
+  }
+
+  const now = audioContext.currentTime;
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+
+  oscillator.type = "square";
+  oscillator.frequency.setValueAtTime(1760, now);
+  oscillator.frequency.exponentialRampToValueAtTime(2200, now + 0.08);
+
+  gainNode.gain.setValueAtTime(0.0001, now);
+  gainNode.gain.exponentialRampToValueAtTime(0.5, now + 0.01);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  oscillator.start(now);
+  oscillator.stop(now + 0.22);
 }
 
 function hasSpeechApi() {
@@ -290,6 +334,9 @@ function handleScanSuccess(decodedText) {
   elements.transcriptInput.value = normalized;
   setScanStatus("掃描成功，內容已直接帶入待發送文字區。");
   addLog(`掃描成功：${normalized}`);
+  playScanSuccessBeep().catch((error) => {
+    addLog(`提示音播放失敗：${error.message}`, "error");
+  });
 }
 
 async function startScanner() {
