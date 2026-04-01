@@ -8,6 +8,7 @@ const state = {
   isScanning: false,
   lastScanText: "",
   audioContext: null,
+  ocrInProgress: false,
 };
 
 const elements = {
@@ -26,6 +27,11 @@ const elements = {
   stopScanButton: document.querySelector("#stop-scan-button"),
   scanStatus: document.querySelector("#scan-status"),
   scannerCard: document.querySelector("#scanner-card"),
+  ocrCard: document.querySelector("#ocr-card"),
+  ocrImageInput: document.querySelector("#ocr-image-input"),
+  ocrCaptureButton: document.querySelector("#ocr-capture-button"),
+  ocrStatus: document.querySelector("#ocr-status"),
+  ocrPreview: document.querySelector("#ocr-preview"),
   transcriptInput: document.querySelector("#transcript-input"),
   appendEnter: document.querySelector("#append-enter"),
   sendButton: document.querySelector("#send-button"),
@@ -90,63 +96,8 @@ function setScanStatus(text) {
   elements.scanStatus.textContent = text;
 }
 
-function getAudioContext() {
-  if (!window.AudioContext && !window.webkitAudioContext) {
-    return null;
-  }
-
-  if (!state.audioContext) {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    state.audioContext = new AudioContextClass();
-  }
-
-  return state.audioContext;
-}
-
-async function playScanSuccessBeep() {
-  const audioContext = getAudioContext();
-  if (!audioContext) {
-    addLog("此瀏覽器不支援提示音播放。", "error");
-    return;
-  }
-
-  if (audioContext.state === "suspended") {
-    await audioContext.resume();
-  }
-
-  const beepAt = (startTime, startFreq, endFreq) => {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-
-    oscillator.type = "square";
-    oscillator.frequency.setValueAtTime(startFreq, startTime);
-    oscillator.frequency.exponentialRampToValueAtTime(endFreq, startTime + 0.08);
-
-    gainNode.gain.setValueAtTime(0.0001, startTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.55, startTime + 0.015);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.18);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    oscillator.start(startTime);
-    oscillator.stop(startTime + 0.18);
-  };
-
-  const now = audioContext.currentTime;
-  beepAt(now, 1760, 2200);
-  beepAt(now + 0.24, 1568, 2093);
-}
-
-function flashScanSuccess() {
-  if (!elements.scannerCard) {
-    return;
-  }
-
-  elements.scannerCard.classList.remove("scan-success-flash");
-  // Restart the animation if scans happen back-to-back.
-  void elements.scannerCard.offsetWidth;
-  elements.scannerCard.classList.add("scan-success-flash");
+function setOcrStatus(text) {
+  elements.ocrStatus.textContent = text;
 }
 
 function hasSpeechApi() {
@@ -155,6 +106,10 @@ function hasSpeechApi() {
 
 function hasQrScannerApi() {
   return typeof Html5Qrcode !== "undefined";
+}
+
+function hasOcrApi() {
+  return typeof Tesseract !== "undefined";
 }
 
 function normalizeText(text) {
@@ -196,6 +151,16 @@ function publishPayload(text, source = "mobile-web") {
   });
 
   return true;
+}
+
+function getOcrLanguage() {
+  const map = {
+    "zh-TW": "chi_tra",
+    "en-US": "eng",
+    "ja-JP": "jpn",
+  };
+
+  return map[elements.languageSelect.value] || "eng";
 }
 
 function connectMqtt() {
@@ -341,6 +306,64 @@ function stopListening() {
   }
 }
 
+function getAudioContext() {
+  if (!window.AudioContext && !window.webkitAudioContext) {
+    return null;
+  }
+
+  if (!state.audioContext) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    state.audioContext = new AudioContextClass();
+  }
+
+  return state.audioContext;
+}
+
+async function playSuccessDoubleBeep() {
+  const audioContext = getAudioContext();
+  if (!audioContext) {
+    addLog("此瀏覽器不支援提示音播放。", "error");
+    return;
+  }
+
+  if (audioContext.state === "suspended") {
+    await audioContext.resume();
+  }
+
+  const beepAt = (startTime, startFreq, endFreq) => {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(startFreq, startTime);
+    oscillator.frequency.exponentialRampToValueAtTime(endFreq, startTime + 0.08);
+
+    gainNode.gain.setValueAtTime(0.0001, startTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.55, startTime + 0.015);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.18);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start(startTime);
+    oscillator.stop(startTime + 0.18);
+  };
+
+  const now = audioContext.currentTime;
+  beepAt(now, 1760, 2200);
+  beepAt(now + 0.24, 1568, 2093);
+}
+
+function flashCard(element) {
+  if (!element) {
+    return;
+  }
+
+  element.classList.remove("success-flash");
+  void element.offsetWidth;
+  element.classList.add("success-flash");
+}
+
 function handleScanSuccess(decodedText) {
   const normalized = normalizeText(decodedText);
   if (!normalized || normalized === state.lastScanText) {
@@ -351,8 +374,8 @@ function handleScanSuccess(decodedText) {
   elements.transcriptInput.value = normalized;
   setScanStatus("掃描成功，內容已直接帶入待發送文字區。");
   addLog(`掃描成功：${normalized}`);
-  flashScanSuccess();
-  playScanSuccessBeep().catch((error) => {
+  flashCard(elements.scannerCard);
+  playSuccessDoubleBeep().catch((error) => {
     addLog(`提示音播放失敗：${error.message}`, "error");
   });
 }
@@ -423,13 +446,87 @@ async function stopScanner() {
   }
 }
 
+function openOcrCapture() {
+  if (state.ocrInProgress) {
+    addLog("OCR 辨識進行中，請先等待完成。", "error");
+    return;
+  }
+
+  elements.ocrImageInput.click();
+}
+
+async function handleOcrImageSelection(event) {
+  const file = event.target.files?.[0];
+  if (!file) {
+    return;
+  }
+
+  if (!hasOcrApi()) {
+    setOcrStatus("OCR 元件未載入成功，請重新整理頁面。");
+    addLog("Tesseract OCR 函式庫沒有載入成功。", "error");
+    return;
+  }
+
+  state.ocrInProgress = true;
+  const imageUrl = URL.createObjectURL(file);
+  elements.ocrPreview.src = imageUrl;
+  elements.ocrPreview.classList.remove("is-hidden");
+  setOcrStatus("照片已取得，正在辨識文字...");
+  addLog("OCR 已開始，正在辨識照片文字。");
+
+  try {
+    const result = await Tesseract.recognize(file, getOcrLanguage(), {
+      logger: (message) => {
+        if (message.status === "recognizing text" && typeof message.progress === "number") {
+          const progress = Math.round(message.progress * 100);
+          setOcrStatus(`OCR 辨識中... ${progress}%`);
+        }
+      },
+    });
+
+    const recognizedText = normalizeText(result.data.text || "");
+    if (!recognizedText) {
+      setOcrStatus("OCR 完成，但沒有辨識到文字。");
+      addLog("OCR 完成，但沒有辨識到有效文字。", "error");
+      return;
+    }
+
+    elements.transcriptInput.value = recognizedText;
+    flashCard(elements.ocrCard);
+    await playSuccessDoubleBeep();
+
+    const sent = publishPayload(recognizedText, "mobile-ocr");
+    if (sent) {
+      setOcrStatus("OCR 成功，文字已送到 MQTT。");
+      addLog(`OCR 成功並已送出：${recognizedText}`);
+    } else {
+      setOcrStatus("OCR 成功，但 MQTT 尚未送出。");
+      addLog("OCR 成功，但 MQTT 尚未連線，尚未送出。", "error");
+    }
+  } catch (error) {
+    setOcrStatus(`OCR 失敗：${error.message}`);
+    addLog(`OCR 失敗：${error.message}`, "error");
+  } finally {
+    state.ocrInProgress = false;
+    elements.ocrImageInput.value = "";
+  }
+}
+
 function sendText() {
   publishPayload(elements.transcriptInput.value, "mobile-web");
 }
 
+function clearContent() {
+  elements.transcriptInput.value = "";
+  elements.ocrPreview.classList.add("is-hidden");
+  elements.ocrPreview.removeAttribute("src");
+  setOcrStatus("拍照後會自動進行 OCR，並把辨識出的文字送到 MQTT。");
+  addLog("已清空文字內容。");
+}
+
 function bootstrap() {
   loadSettings();
-  addLog("系統已就緒。先連線 MQTT，再開始語音辨識或掃碼。");
+  addLog("系統已就緒。先連線 MQTT，再開始語音辨識、掃碼或拍照 OCR。");
 
   if (!hasSpeechApi()) {
     addLog("此瀏覽器可能不支援語音辨識。", "error");
@@ -437,6 +534,10 @@ function bootstrap() {
 
   if (!hasQrScannerApi()) {
     addLog("此瀏覽器或網頁目前無法使用掃碼元件。", "error");
+  }
+
+  if (!hasOcrApi()) {
+    addLog("此瀏覽器或網頁目前無法使用 OCR 元件。", "error");
   }
 }
 
@@ -446,11 +547,10 @@ elements.listenButton.addEventListener("click", startListening);
 elements.stopButton.addEventListener("click", stopListening);
 elements.startScanButton.addEventListener("click", startScanner);
 elements.stopScanButton.addEventListener("click", stopScanner);
+elements.ocrCaptureButton.addEventListener("click", openOcrCapture);
+elements.ocrImageInput.addEventListener("change", handleOcrImageSelection);
 elements.sendButton.addEventListener("click", sendText);
-elements.clearButton.addEventListener("click", () => {
-  elements.transcriptInput.value = "";
-  addLog("已清空文字內容。");
-});
+elements.clearButton.addEventListener("click", clearContent);
 
 window.addEventListener("beforeunload", () => {
   if (state.client) {

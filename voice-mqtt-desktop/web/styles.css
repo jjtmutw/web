@@ -98,6 +98,10 @@ textarea {
   backdrop-filter: blur(18px);
 }
 
+.success-flash {
+  animation: success-flash 520ms ease-out;
+}
+
 .hero {
   padding: 28px;
   margin-bottom: 18px;
@@ -248,6 +252,24 @@ textarea {
   display: block;
 }
 
+.hidden-file-input {
+  display: none;
+}
+
+.ocr-preview {
+  width: 100%;
+  margin-top: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(4, 10, 19, 0.76);
+  object-fit: cover;
+  max-height: 320px;
+}
+
+.is-hidden {
+  display: none;
+}
+
 
 .log {
   min-height: 240px;
@@ -281,6 +303,31 @@ textarea {
   }
   50% {
     transform: translate3d(20px, -14px, 0) scale(1.06);
+  }
+}
+
+@keyframes success-flash {
+  0% {
+    box-shadow:
+      0 0 0 rgba(104, 225, 178, 0),
+      var(--shadow);
+    border-color: var(--panel-border);
+    transform: scale(1);
+  }
+  30% {
+    box-shadow:
+      0 0 0 3px rgba(104, 225, 178, 0.7),
+      0 0 36px rgba(104, 225, 178, 0.35),
+      var(--shadow);
+    border-color: rgba(104, 225, 178, 0.9);
+    transform: scale(1.01);
+  }
+  100% {
+    box-shadow:
+      0 0 0 rgba(104, 225, 178, 0),
+      var(--shadow);
+    border-color: var(--panel-border);
+    transform: scale(1);
   }
 }
 

@@ -19,9 +19,9 @@
     <main class="shell">
       <section class="hero card">
         <p class="eyebrow">VOICE TO DESKTOP</p>
-        <h1>手機語音或掃碼轉文字，透過 MQTT 直接送到電腦</h1>
+        <h1>手機語音、掃碼、拍照 OCR，透過 MQTT 直接送到電腦</h1>
         <p class="lead">
-          你可以用手機語音辨識，或直接掃描 QR Code / barcode。網頁會把內容送到 MQTT，桌面端 Python 程式收到後就貼到目前游標位置。
+          你可以用手機語音辨識、掃描 QR / barcode，或是拍照後讓網頁自動 OCR 辨識文字。辨識完成後，內容會送到 MQTT，桌面端 Python 程式收到後就貼到目前游標位置。
         </p>
       </section>
 
@@ -87,7 +87,7 @@
           </p>
         </section>
 
-        <section class="card">
+        <section class="card" id="scanner-card">
           <div class="section-head">
             <p class="eyebrow">Step 3</p>
             <h2>QR / Barcode 掃描</h2>
@@ -102,20 +102,40 @@
             <button id="start-scan-button" class="primary-button" type="button">開始掃描</button>
             <button id="stop-scan-button" class="ghost-button" type="button">停止掃描</button>
           </div>
+
           <p class="muted">
-            掃到內容後會直接帶入下方的待發送文字區。
+            掃到內容後會直接帶入下方的待發送文字區，並以兩聲嗶聲加上閃爍提示通知成功。
           </p>
+        </section>
+
+        <section class="card" id="ocr-card">
+          <div class="section-head">
+            <p class="eyebrow">Step 4</p>
+            <h2>拍照 OCR</h2>
+          </div>
+
+          <input id="ocr-image-input" class="hidden-file-input" type="file" accept="image/*" capture="environment">
+
+          <div class="button-row">
+            <button id="ocr-capture-button" class="primary-button" type="button">拍照辨識文字</button>
+          </div>
+
+          <p id="ocr-status" class="muted">
+            拍照後會自動進行 OCR，並把辨識出的文字送到 MQTT。
+          </p>
+
+          <img id="ocr-preview" class="ocr-preview is-hidden" alt="OCR photo preview">
         </section>
 
         <section class="card transcript-card">
           <div class="section-head">
-            <p class="eyebrow">Step 4</p>
-            <h2>送出內容</h2>
+            <p class="eyebrow">Step 5</p>
+            <h2>待發送文字</h2>
           </div>
 
           <label class="field">
-            <span>待發送文字</span>
-            <textarea id="transcript-input" rows="6" placeholder="語音結果或掃描內容會出現在這裡，也可以手動修改後再送出。"></textarea>
+            <span>內容</span>
+            <textarea id="transcript-input" rows="6" placeholder="語音結果、掃碼結果或 OCR 文字會出現在這裡，也可以手動修改後再送出。"></textarea>
           </label>
 
           <label class="check-row">
@@ -145,6 +165,7 @@
 
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>
