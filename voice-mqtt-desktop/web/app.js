@@ -364,6 +364,42 @@ function flashCard(element) {
   element.classList.add("success-flash");
 }
 
+function clearOcrPreview() {
+  elements.ocrPreview.classList.add("is-hidden");
+  elements.ocrPreview.removeAttribute("src");
+}
+
+function loadOcrPreview(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      if (!result) {
+        reject(new Error("無法讀取照片預覽資料。"));
+        return;
+      }
+
+      elements.ocrPreview.onload = () => {
+        elements.ocrPreview.classList.remove("is-hidden");
+        resolve();
+      };
+
+      elements.ocrPreview.onerror = () => {
+        reject(new Error("照片預覽載入失敗。"));
+      };
+
+      elements.ocrPreview.src = result;
+    };
+
+    reader.onerror = () => {
+      reject(new Error("讀取照片失敗。"));
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
 function handleScanSuccess(decodedText) {
   const normalized = normalizeText(decodedText);
   if (!normalized || normalized === state.lastScanText) {
@@ -468,13 +504,15 @@ async function handleOcrImageSelection(event) {
   }
 
   state.ocrInProgress = true;
-  const imageUrl = URL.createObjectURL(file);
-  elements.ocrPreview.src = imageUrl;
-  elements.ocrPreview.classList.remove("is-hidden");
-  setOcrStatus("照片已取得，正在辨識文字...");
-  addLog("OCR 已開始，正在辨識照片文字。");
+  clearOcrPreview();
+  setOcrStatus("照片已取得，正在載入預覽...");
+  addLog("OCR 已開始，正在載入照片預覽。");
 
   try {
+    await loadOcrPreview(file);
+    setOcrStatus("照片預覽已載入，正在辨識文字...");
+    addLog("照片預覽已載入，開始 OCR。");
+
     const result = await Tesseract.recognize(file, getOcrLanguage(), {
       logger: (message) => {
         if (message.status === "recognizing text" && typeof message.progress === "number") {
@@ -518,8 +556,7 @@ function sendText() {
 
 function clearContent() {
   elements.transcriptInput.value = "";
-  elements.ocrPreview.classList.add("is-hidden");
-  elements.ocrPreview.removeAttribute("src");
+  clearOcrPreview();
   setOcrStatus("拍照後會自動進行 OCR，並把辨識出的文字送到 MQTT。");
   addLog("已清空文字內容。");
 }
