@@ -28,6 +28,7 @@ const elements = {
   scanStatus: document.querySelector("#scan-status"),
   scannerCard: document.querySelector("#scanner-card"),
   ocrCard: document.querySelector("#ocr-card"),
+  ocrCaptureButton: document.querySelector("#ocr-capture-button"),
   ocrImageInput: document.querySelector("#ocr-image-input"),
   ocrStatus: document.querySelector("#ocr-status"),
   ocrPreview: document.querySelector("#ocr-preview"),
@@ -364,6 +365,8 @@ function flashCard(element) {
 }
 
 function clearOcrPreview() {
+  elements.ocrPreview.onload = null;
+  elements.ocrPreview.onerror = null;
   elements.ocrPreview.classList.add("is-hidden");
   elements.ocrPreview.removeAttribute("src");
 }
@@ -484,6 +487,7 @@ async function stopScanner() {
 async function handleOcrImageSelection(event) {
   const file = event.target.files?.[0];
   if (!file) {
+    state.ocrInProgress = false;
     return;
   }
 
@@ -544,6 +548,18 @@ function sendText() {
   publishPayload(elements.transcriptInput.value, "mobile-web");
 }
 
+function prepareOcrCapture(event) {
+  if (state.ocrInProgress) {
+    event.preventDefault();
+    addLog("OCR 辨識進行中，請先等待完成。", "error");
+    return;
+  }
+
+  // Reset the file input before each capture so selecting/capturing again
+  // will always trigger the change event, even on mobile browsers.
+  elements.ocrImageInput.value = "";
+}
+
 function clearContent() {
   elements.transcriptInput.value = "";
   clearOcrPreview();
@@ -574,6 +590,7 @@ elements.listenButton.addEventListener("click", startListening);
 elements.stopButton.addEventListener("click", stopListening);
 elements.startScanButton.addEventListener("click", startScanner);
 elements.stopScanButton.addEventListener("click", stopScanner);
+elements.ocrCaptureButton.addEventListener("click", prepareOcrCapture);
 elements.ocrImageInput.addEventListener("change", handleOcrImageSelection);
 elements.sendButton.addEventListener("click", sendText);
 elements.clearButton.addEventListener("click", clearContent);
