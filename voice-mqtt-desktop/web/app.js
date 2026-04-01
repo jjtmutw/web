@@ -25,6 +25,7 @@ const elements = {
   startScanButton: document.querySelector("#start-scan-button"),
   stopScanButton: document.querySelector("#stop-scan-button"),
   scanStatus: document.querySelector("#scan-status"),
+  scannerCard: document.querySelector("#scanner-card"),
   transcriptInput: document.querySelector("#transcript-input"),
   appendEnter: document.querySelector("#append-enter"),
   sendButton: document.querySelector("#send-button"),
@@ -113,23 +114,39 @@ async function playScanSuccessBeep() {
     await audioContext.resume();
   }
 
+  const beepAt = (startTime, startFreq, endFreq) => {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(startFreq, startTime);
+    oscillator.frequency.exponentialRampToValueAtTime(endFreq, startTime + 0.08);
+
+    gainNode.gain.setValueAtTime(0.0001, startTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.55, startTime + 0.015);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.18);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start(startTime);
+    oscillator.stop(startTime + 0.18);
+  };
+
   const now = audioContext.currentTime;
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
+  beepAt(now, 1760, 2200);
+  beepAt(now + 0.24, 1568, 2093);
+}
 
-  oscillator.type = "square";
-  oscillator.frequency.setValueAtTime(1760, now);
-  oscillator.frequency.exponentialRampToValueAtTime(2200, now + 0.08);
+function flashScanSuccess() {
+  if (!elements.scannerCard) {
+    return;
+  }
 
-  gainNode.gain.setValueAtTime(0.0001, now);
-  gainNode.gain.exponentialRampToValueAtTime(0.5, now + 0.01);
-  gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
-
-  oscillator.start(now);
-  oscillator.stop(now + 0.22);
+  elements.scannerCard.classList.remove("scan-success-flash");
+  // Restart the animation if scans happen back-to-back.
+  void elements.scannerCard.offsetWidth;
+  elements.scannerCard.classList.add("scan-success-flash");
 }
 
 function hasSpeechApi() {
@@ -334,6 +351,7 @@ function handleScanSuccess(decodedText) {
   elements.transcriptInput.value = normalized;
   setScanStatus("掃描成功，內容已直接帶入待發送文字區。");
   addLog(`掃描成功：${normalized}`);
+  flashScanSuccess();
   playScanSuccessBeep().catch((error) => {
     addLog(`提示音播放失敗：${error.message}`, "error");
   });
