@@ -1,9 +1,9 @@
 # Voice MQTT Desktop Paste
 
-This is a standalone project for turning phone speech or scanned code content into pasted text on a computer:
+This is a standalone project for turning phone speech, scanned code content, or OCR text into pasted text on a computer:
 
-1. A phone browser performs speech recognition or scans a QR code / barcode.
-2. The recognized or scanned text is published to MQTT over WebSocket.
+1. A phone browser performs speech recognition, scans a QR / barcode, or takes a photo for OCR.
+2. The recognized text is published to MQTT over WebSocket.
 3. A Python program on the computer subscribes to the MQTT topic.
 4. When a message arrives, the program copies the text to the clipboard and pastes it into the currently focused cursor position.
 
@@ -13,7 +13,7 @@ This avoids ESP32 hardware and also works better for Chinese text, because the d
 
 ## Folder layout
 
-- `web/`: mobile web page for speech recognition, QR/barcode scanning, and MQTT publishing
+- `web/`: mobile web page for speech recognition, QR/barcode scanning, camera OCR, and MQTT publishing
 - `desktop/`: Python listener that subscribes to MQTT and pastes incoming text
 
 ## Tested target workflow
@@ -52,8 +52,8 @@ pip install -r requirements.txt
 - On Windows, `Ctrl+V` paste is used by default.
 - If the received text contains `老闆來了`, the desktop helper will minimize all windows with `Win+M` instead of pasting the text.
 - Some browsers require HTTPS for speech recognition features.
-- Camera-based QR/barcode scanning also needs camera permission, and usually works best on mobile Chrome or Edge over HTTPS.
-- The web page uses browser-native speech recognition, so support depends on the mobile browser.
+- Camera-based QR/barcode scanning and OCR both need camera permission, and usually work best on mobile Chrome or Edge over HTTPS.
+- The OCR feature runs in the phone browser, so large images may take longer to process.
 
 ## Quick start
 
@@ -68,7 +68,7 @@ python listener.py
 4. Open the page on your phone.
 5. Enter the same broker and topic settings if needed.
 6. Connect MQTT.
-7. Use either speech recognition or the QR/barcode scanner.
+7. Use speech recognition, QR/barcode scanning, or camera OCR.
 8. Focus any text field on the computer, then send text from the phone.
 
 ## Security reminder
