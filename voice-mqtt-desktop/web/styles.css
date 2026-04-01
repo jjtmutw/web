@@ -259,24 +259,6 @@ textarea {
   display: block;
 }
 
-.hidden-file-input {
-  display: none;
-}
-
-.ocr-preview {
-  width: 100%;
-  margin-top: 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(4, 10, 19, 0.76);
-  object-fit: cover;
-  max-height: 320px;
-}
-
-.is-hidden {
-  display: none;
-}
-
 
 .log {
   min-height: 240px;

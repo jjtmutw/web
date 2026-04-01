@@ -8,7 +8,6 @@ const state = {
   isScanning: false,
   lastScanText: "",
   audioContext: null,
-  ocrInProgress: false,
 };
 
 const elements = {
@@ -27,11 +26,6 @@ const elements = {
   stopScanButton: document.querySelector("#stop-scan-button"),
   scanStatus: document.querySelector("#scan-status"),
   scannerCard: document.querySelector("#scanner-card"),
-  ocrCard: document.querySelector("#ocr-card"),
-  ocrCaptureButton: document.querySelector("#ocr-capture-button"),
-  ocrImageInput: document.querySelector("#ocr-image-input"),
-  ocrStatus: document.querySelector("#ocr-status"),
-  ocrPreview: document.querySelector("#ocr-preview"),
   transcriptInput: document.querySelector("#transcript-input"),
   appendEnter: document.querySelector("#append-enter"),
   sendButton: document.querySelector("#send-button"),
@@ -96,20 +90,12 @@ function setScanStatus(text) {
   elements.scanStatus.textContent = text;
 }
 
-function setOcrStatus(text) {
-  elements.ocrStatus.textContent = text;
-}
-
 function hasSpeechApi() {
   return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
 
 function hasQrScannerApi() {
   return typeof Html5Qrcode !== "undefined";
-}
-
-function hasOcrApi() {
-  return typeof Tesseract !== "undefined";
 }
 
 function normalizeText(text) {
@@ -151,16 +137,6 @@ function publishPayload(text, source = "mobile-web") {
   });
 
   return true;
-}
-
-function getOcrLanguage() {
-  const map = {
-    "zh-TW": "chi_tra",
-    "en-US": "eng",
-    "ja-JP": "jpn",
-  };
-
-  return map[elements.languageSelect.value] || "eng";
 }
 
 function connectMqtt() {
@@ -364,44 +340,6 @@ function flashCard(element) {
   element.classList.add("success-flash");
 }
 
-function clearOcrPreview() {
-  elements.ocrPreview.onload = null;
-  elements.ocrPreview.onerror = null;
-  elements.ocrPreview.classList.add("is-hidden");
-  elements.ocrPreview.removeAttribute("src");
-}
-
-function loadOcrPreview(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      if (!result) {
-        reject(new Error("無法讀取照片預覽資料。"));
-        return;
-      }
-
-      elements.ocrPreview.onload = () => {
-        elements.ocrPreview.classList.remove("is-hidden");
-        resolve();
-      };
-
-      elements.ocrPreview.onerror = () => {
-        reject(new Error("照片預覽載入失敗。"));
-      };
-
-      elements.ocrPreview.src = result;
-    };
-
-    reader.onerror = () => {
-      reject(new Error("讀取照片失敗。"));
-    };
-
-    reader.readAsDataURL(file);
-  });
-}
-
 function handleScanSuccess(decodedText) {
   const normalized = normalizeText(decodedText);
   if (!normalized || normalized === state.lastScanText) {
@@ -484,92 +422,18 @@ async function stopScanner() {
   }
 }
 
-async function handleOcrImageSelection(event) {
-  const file = event.target.files?.[0];
-  if (!file) {
-    state.ocrInProgress = false;
-    return;
-  }
-
-  if (!hasOcrApi()) {
-    setOcrStatus("OCR 元件未載入成功，請重新整理頁面。");
-    addLog("Tesseract OCR 函式庫沒有載入成功。", "error");
-    return;
-  }
-
-  state.ocrInProgress = true;
-  clearOcrPreview();
-  setOcrStatus("照片已取得，正在載入預覽...");
-  addLog("OCR 已開始，正在載入照片預覽。");
-
-  try {
-    await loadOcrPreview(file);
-    setOcrStatus("照片預覽已載入，正在辨識文字...");
-    addLog("照片預覽已載入，開始 OCR。");
-
-    const result = await Tesseract.recognize(file, getOcrLanguage(), {
-      logger: (message) => {
-        if (message.status === "recognizing text" && typeof message.progress === "number") {
-          const progress = Math.round(message.progress * 100);
-          setOcrStatus(`OCR 辨識中... ${progress}%`);
-        }
-      },
-    });
-
-    const recognizedText = normalizeText(result.data.text || "");
-    if (!recognizedText) {
-      setOcrStatus("OCR 完成，但沒有辨識到文字。");
-      addLog("OCR 完成，但沒有辨識到有效文字。", "error");
-      return;
-    }
-
-    elements.transcriptInput.value = recognizedText;
-    flashCard(elements.ocrCard);
-    await playSuccessDoubleBeep();
-
-    const sent = publishPayload(recognizedText, "mobile-ocr");
-    if (sent) {
-      setOcrStatus("OCR 成功，文字已送到 MQTT。");
-      addLog(`OCR 成功並已送出：${recognizedText}`);
-    } else {
-      setOcrStatus("OCR 成功，但 MQTT 尚未送出。");
-      addLog("OCR 成功，但 MQTT 尚未連線，尚未送出。", "error");
-    }
-  } catch (error) {
-    setOcrStatus(`OCR 失敗：${error.message}`);
-    addLog(`OCR 失敗：${error.message}`, "error");
-  } finally {
-    state.ocrInProgress = false;
-    elements.ocrImageInput.value = "";
-  }
-}
-
 function sendText() {
   publishPayload(elements.transcriptInput.value, "mobile-web");
 }
 
-function prepareOcrCapture(event) {
-  if (state.ocrInProgress) {
-    event.preventDefault();
-    addLog("OCR 辨識進行中，請先等待完成。", "error");
-    return;
-  }
-
-  // Reset the file input before each capture so selecting/capturing again
-  // will always trigger the change event, even on mobile browsers.
-  elements.ocrImageInput.value = "";
-}
-
 function clearContent() {
   elements.transcriptInput.value = "";
-  clearOcrPreview();
-  setOcrStatus("拍照後會自動進行 OCR，並把辨識出的文字送到 MQTT。");
   addLog("已清空文字內容。");
 }
 
 function bootstrap() {
   loadSettings();
-  addLog("系統已就緒。先連線 MQTT，再開始語音辨識、掃碼或拍照 OCR。");
+  addLog("系統已就緒。先連線 MQTT，再開始語音辨識或掃碼。");
 
   if (!hasSpeechApi()) {
     addLog("此瀏覽器可能不支援語音辨識。", "error");
@@ -577,10 +441,6 @@ function bootstrap() {
 
   if (!hasQrScannerApi()) {
     addLog("此瀏覽器或網頁目前無法使用掃碼元件。", "error");
-  }
-
-  if (!hasOcrApi()) {
-    addLog("此瀏覽器或網頁目前無法使用 OCR 元件。", "error");
   }
 }
 
@@ -590,8 +450,6 @@ elements.listenButton.addEventListener("click", startListening);
 elements.stopButton.addEventListener("click", stopListening);
 elements.startScanButton.addEventListener("click", startScanner);
 elements.stopScanButton.addEventListener("click", stopScanner);
-elements.ocrCaptureButton.addEventListener("click", prepareOcrCapture);
-elements.ocrImageInput.addEventListener("change", handleOcrImageSelection);
 elements.sendButton.addEventListener("click", sendText);
 elements.clearButton.addEventListener("click", clearContent);
 
