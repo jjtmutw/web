@@ -29,7 +29,6 @@ const elements = {
   scannerCard: document.querySelector("#scanner-card"),
   ocrCard: document.querySelector("#ocr-card"),
   ocrImageInput: document.querySelector("#ocr-image-input"),
-  ocrCaptureButton: document.querySelector("#ocr-capture-button"),
   ocrStatus: document.querySelector("#ocr-status"),
   ocrPreview: document.querySelector("#ocr-preview"),
   transcriptInput: document.querySelector("#transcript-input"),
@@ -482,15 +481,6 @@ async function stopScanner() {
   }
 }
 
-function openOcrCapture() {
-  if (state.ocrInProgress) {
-    addLog("OCR 辨識進行中，請先等待完成。", "error");
-    return;
-  }
-
-  elements.ocrImageInput.click();
-}
-
 async function handleOcrImageSelection(event) {
   const file = event.target.files?.[0];
   if (!file) {
@@ -584,7 +574,6 @@ elements.listenButton.addEventListener("click", startListening);
 elements.stopButton.addEventListener("click", stopListening);
 elements.startScanButton.addEventListener("click", startScanner);
 elements.stopScanButton.addEventListener("click", stopScanner);
-elements.ocrCaptureButton.addEventListener("click", openOcrCapture);
 elements.ocrImageInput.addEventListener("change", handleOcrImageSelection);
 elements.sendButton.addEventListener("click", sendText);
 elements.clearButton.addEventListener("click", clearContent);
