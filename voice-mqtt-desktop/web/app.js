@@ -24,9 +24,6 @@ const elements = {
   startScanButton: document.querySelector("#start-scan-button"),
   stopScanButton: document.querySelector("#stop-scan-button"),
   scanStatus: document.querySelector("#scan-status"),
-  scanResult: document.querySelector("#scan-result"),
-  useScanButton: document.querySelector("#use-scan-button"),
-  sendScanButton: document.querySelector("#send-scan-button"),
   transcriptInput: document.querySelector("#transcript-input"),
   appendEnter: document.querySelector("#append-enter"),
   sendButton: document.querySelector("#send-button"),
@@ -290,8 +287,8 @@ function handleScanSuccess(decodedText) {
   }
 
   state.lastScanText = normalized;
-  elements.scanResult.value = normalized;
-  setScanStatus("掃描成功，可以帶入或直接送出。");
+  elements.transcriptInput.value = normalized;
+  setScanStatus("掃描成功，內容已直接帶入待發送文字區。");
   addLog(`掃描成功：${normalized}`);
 }
 
@@ -361,27 +358,6 @@ async function stopScanner() {
   }
 }
 
-function useScanResult() {
-  const scanned = normalizeText(elements.scanResult.value);
-  if (!scanned) {
-    addLog("目前沒有可帶入的掃描結果。", "error");
-    return;
-  }
-
-  elements.transcriptInput.value = scanned;
-  addLog("已將掃描結果帶入待發送文字。");
-}
-
-function sendScanResult() {
-  const scanned = normalizeText(elements.scanResult.value);
-  if (!scanned) {
-    addLog("目前沒有可送出的掃描結果。", "error");
-    return;
-  }
-
-  publishPayload(scanned, "mobile-scan");
-}
-
 function sendText() {
   publishPayload(elements.transcriptInput.value, "mobile-web");
 }
@@ -405,12 +381,9 @@ elements.listenButton.addEventListener("click", startListening);
 elements.stopButton.addEventListener("click", stopListening);
 elements.startScanButton.addEventListener("click", startScanner);
 elements.stopScanButton.addEventListener("click", stopScanner);
-elements.useScanButton.addEventListener("click", useScanResult);
-elements.sendScanButton.addEventListener("click", sendScanResult);
 elements.sendButton.addEventListener("click", sendText);
 elements.clearButton.addEventListener("click", () => {
   elements.transcriptInput.value = "";
-  elements.scanResult.value = "";
   addLog("已清空文字內容。");
 });
 
