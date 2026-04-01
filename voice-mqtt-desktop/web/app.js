@@ -4,6 +4,9 @@ const state = {
   client: null,
   recognition: null,
   isListening: false,
+  scanner: null,
+  isScanning: false,
+  lastScanText: "",
 };
 
 const elements = {
@@ -18,6 +21,12 @@ const elements = {
   listenButton: document.querySelector("#listen-button"),
   stopButton: document.querySelector("#stop-button"),
   speechStatus: document.querySelector("#speech-status"),
+  startScanButton: document.querySelector("#start-scan-button"),
+  stopScanButton: document.querySelector("#stop-scan-button"),
+  scanStatus: document.querySelector("#scan-status"),
+  scanResult: document.querySelector("#scan-result"),
+  useScanButton: document.querySelector("#use-scan-button"),
+  sendScanButton: document.querySelector("#send-scan-button"),
   transcriptInput: document.querySelector("#transcript-input"),
   appendEnter: document.querySelector("#append-enter"),
   sendButton: document.querySelector("#send-button"),
@@ -59,7 +68,7 @@ function loadSettings() {
     }
 
     const settings = JSON.parse(raw);
-    elements.brokerUrl.value = settings.brokerUrl || "";
+    elements.brokerUrl.value = settings.brokerUrl || "wss://broker.emqx.io:8084/mqtt";
     elements.topic.value = settings.topic || "jj/voice/input";
     elements.username.value = settings.username || "";
     elements.password.value = settings.password || "";
@@ -78,21 +87,57 @@ function setSpeechStatus(text) {
   elements.speechStatus.textContent = text;
 }
 
+function setScanStatus(text) {
+  elements.scanStatus.textContent = text;
+}
+
 function hasSpeechApi() {
   return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+function hasQrScannerApi() {
+  return typeof Html5Qrcode !== "undefined";
 }
 
 function normalizeText(text) {
   return text.replace(/\s+/g, " ").trim();
 }
 
-function currentPayload() {
+function buildPayload(text, source = "mobile-web") {
   return JSON.stringify({
-    text: normalizeText(elements.transcriptInput.value),
+    text: normalizeText(text),
     append_enter: elements.appendEnter.checked,
-    source: "mobile-web",
+    source,
     timestamp: new Date().toISOString(),
   });
+}
+
+function publishPayload(text, source = "mobile-web") {
+  const topic = elements.topic.value.trim();
+  const normalized = normalizeText(text);
+
+  if (!state.client || !state.client.connected) {
+    addLog("MQTT 尚未連線。", "error");
+    return false;
+  }
+
+  if (!topic || !normalized) {
+    addLog("請確認 Topic 與文字內容不為空。", "error");
+    return false;
+  }
+
+  saveSettings();
+
+  state.client.publish(topic, buildPayload(normalized, source), { qos: 0, retain: false }, (error) => {
+    if (error) {
+      addLog(`發送失敗：${error.message}`, "error");
+      return;
+    }
+
+    addLog(`已發送內容到 ${topic}：${normalized}`);
+  });
+
+  return true;
 }
 
 function connectMqtt() {
@@ -161,6 +206,7 @@ function disconnectMqtt() {
     state.client.end(true);
     state.client = null;
   }
+
   setMqttStatus("MQTT 已手動中斷。");
 }
 
@@ -237,38 +283,119 @@ function stopListening() {
   }
 }
 
+function handleScanSuccess(decodedText) {
+  const normalized = normalizeText(decodedText);
+  if (!normalized || normalized === state.lastScanText) {
+    return;
+  }
+
+  state.lastScanText = normalized;
+  elements.scanResult.value = normalized;
+  setScanStatus("掃描成功，可以帶入或直接送出。");
+  addLog(`掃描成功：${normalized}`);
+}
+
+async function startScanner() {
+  if (state.isScanning) {
+    return;
+  }
+
+  if (!hasQrScannerApi()) {
+    setScanStatus("掃碼元件未載入成功，請重新整理頁面。");
+    addLog("Html5Qrcode 函式庫沒有載入成功。", "error");
+    return;
+  }
+
+  state.lastScanText = "";
+  if (!state.scanner) {
+    state.scanner = new Html5Qrcode("scanner");
+  }
+
+  try {
+    await state.scanner.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: { width: 240, height: 240 },
+        aspectRatio: 1.333334,
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.CODABAR,
+        ],
+      },
+      handleScanSuccess,
+      () => {}
+    );
+
+    state.isScanning = true;
+    setScanStatus("相機已啟動，請將 QR Code 或 barcode 對準框內。");
+    addLog("掃碼相機已啟動。");
+  } catch (error) {
+    state.isScanning = false;
+    setScanStatus("無法啟動相機，請確認已允許相機權限。");
+    addLog(`啟動掃碼失敗：${error.message}`, "error");
+  }
+}
+
+async function stopScanner() {
+  if (!state.scanner || !state.isScanning) {
+    return;
+  }
+
+  try {
+    await state.scanner.stop();
+    await state.scanner.clear();
+    state.isScanning = false;
+    state.scanner = null;
+    setScanStatus("掃碼已停止。");
+    addLog("掃碼相機已停止。");
+  } catch (error) {
+    addLog(`停止掃碼失敗：${error.message}`, "error");
+  }
+}
+
+function useScanResult() {
+  const scanned = normalizeText(elements.scanResult.value);
+  if (!scanned) {
+    addLog("目前沒有可帶入的掃描結果。", "error");
+    return;
+  }
+
+  elements.transcriptInput.value = scanned;
+  addLog("已將掃描結果帶入待發送文字。");
+}
+
+function sendScanResult() {
+  const scanned = normalizeText(elements.scanResult.value);
+  if (!scanned) {
+    addLog("目前沒有可送出的掃描結果。", "error");
+    return;
+  }
+
+  publishPayload(scanned, "mobile-scan");
+}
+
 function sendText() {
-  const topic = elements.topic.value.trim();
-  const text = normalizeText(elements.transcriptInput.value);
-
-  if (!state.client || !state.client.connected) {
-    addLog("MQTT 尚未連線。", "error");
-    return;
-  }
-
-  if (!topic || !text) {
-    addLog("請確認 Topic 與文字內容不為空。", "error");
-    return;
-  }
-
-  saveSettings();
-
-  state.client.publish(topic, currentPayload(), { qos: 0, retain: false }, (error) => {
-    if (error) {
-      addLog(`發送失敗：${error.message}`, "error");
-      return;
-    }
-
-    addLog(`已發送文字到 ${topic}：${text}`);
-  });
+  publishPayload(elements.transcriptInput.value, "mobile-web");
 }
 
 function bootstrap() {
   loadSettings();
-  addLog("系統已就緒。先連線 MQTT，再開始語音辨識。");
+  addLog("系統已就緒。先連線 MQTT，再開始語音辨識或掃碼。");
 
   if (!hasSpeechApi()) {
     addLog("此瀏覽器可能不支援語音辨識。", "error");
+  }
+
+  if (!hasQrScannerApi()) {
+    addLog("此瀏覽器或網頁目前無法使用掃碼元件。", "error");
   }
 }
 
@@ -276,10 +403,25 @@ elements.connectButton.addEventListener("click", connectMqtt);
 elements.disconnectButton.addEventListener("click", disconnectMqtt);
 elements.listenButton.addEventListener("click", startListening);
 elements.stopButton.addEventListener("click", stopListening);
+elements.startScanButton.addEventListener("click", startScanner);
+elements.stopScanButton.addEventListener("click", stopScanner);
+elements.useScanButton.addEventListener("click", useScanResult);
+elements.sendScanButton.addEventListener("click", sendScanResult);
 elements.sendButton.addEventListener("click", sendText);
 elements.clearButton.addEventListener("click", () => {
   elements.transcriptInput.value = "";
+  elements.scanResult.value = "";
   addLog("已清空文字內容。");
+});
+
+window.addEventListener("beforeunload", () => {
+  if (state.client) {
+    state.client.end(true);
+  }
+
+  if (state.scanner && state.isScanning) {
+    state.scanner.stop().catch(() => {});
+  }
 });
 
 bootstrap();

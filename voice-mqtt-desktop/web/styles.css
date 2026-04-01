@@ -234,6 +234,24 @@ textarea {
   min-height: 100%;
 }
 
+.scanner-shell {
+  width: 100%;
+  min-height: 280px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(4, 10, 19, 0.76);
+}
+
+.scanner-shell video {
+  width: 100%;
+  display: block;
+}
+
+.compact-field {
+  margin-top: 16px;
+}
+
 .log {
   min-height: 240px;
   max-height: 360px;
