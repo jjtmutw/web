@@ -25,7 +25,7 @@ logging.basicConfig(
 def load_config() -> dict[str, Any]:
     if not CONFIG_PATH.exists():
         raise FileNotFoundError(
-            f"Missing config file: {CONFIG_PATH}. Copy config.example.json to config.json first."
+            f"找不到設定檔：{CONFIG_PATH}。請先將 config.example.json 複製為 config.json。"
         )
 
     with CONFIG_PATH.open("r", encoding="utf-8") as file:
@@ -36,6 +36,7 @@ def normalize_host(raw_host: str) -> str:
     host = raw_host.strip()
     if not host:
         raise ValueError("MQTT host is empty. Please set a valid broker hostname or IP in config.json.")
+        
 
     # If the user pasted a URL like ws://broker:8083/mqtt or mqtt://broker,
     # extract only the hostname because paho-mqtt expects host and port separately.
@@ -43,15 +44,15 @@ def normalize_host(raw_host: str) -> str:
         parsed = urlparse(host)
         if not parsed.hostname:
             raise ValueError(
-                "Invalid MQTT host format. Use only the broker hostname or IP in config.json, "
-                'for example "test.mosquitto.org" or "192.168.1.10".'
+                "MQTT host 格式不正確。config.json 只需要填主機名稱或 IP，"
+                '例如 "test.mosquitto.org" 或 "192.168.1.10"。'
             )
         return parsed.hostname
 
     if "/" in host:
         raise ValueError(
-            "Invalid MQTT host in config.json. Do not include a path like /mqtt; "
-            "set only the broker hostname or IP."
+            "config.json 的 MQTT host 不可包含 /mqtt 這類路徑，"
+            "只填主機名稱或 IP 即可。"
         )
 
     return host
@@ -59,7 +60,7 @@ def normalize_host(raw_host: str) -> str:
 
 def paste_text(text: str, append_enter: bool, paste_hotkey: str) -> None:
     if not text:
-        logging.warning("Received empty text; skipping paste.")
+        logging.warning("收到空白文字，略過貼上。")
         return
 
     pyperclip.copy(text)
@@ -72,7 +73,7 @@ def paste_text(text: str, append_enter: bool, paste_hotkey: str) -> None:
 
 
 def minimize_all_windows() -> None:
-    logging.info("Trigger detected: minimizing all windows.")
+    logging.info("觸發縮小所有視窗。")
     keyboard.send("windows+m")
 
 
@@ -100,6 +101,7 @@ def on_connect(
 ) -> None:
     topic = userdata["topic"]
     logging.info("Connected to MQTT broker. Subscribing to topic: %s", topic)
+    logging.info("已連線 MQTT，訂閱主題：%s", topic)
     client.subscribe(topic)
 
 
@@ -109,10 +111,10 @@ def on_message(client: mqtt.Client, userdata: dict[str, Any], message: mqtt.MQTT
     text, append_enter = parse_payload(message.payload, append_enter_default)
 
     if not text:
-        logging.warning("Received empty payload on topic %s", message.topic)
+        logging.warning("主題 %s 收到空白內容。", message.topic)
         return
 
-    logging.info("Received text on %s: %s", message.topic, text)
+    logging.info("收到訊息 %s：%s", message.topic, text)
 
     if MINIMIZE_ALL_TRIGGER in text:
         minimize_all_windows()
@@ -150,8 +152,8 @@ def main() -> None:
     port = int(config.get("port", 1883))
     keepalive = int(config.get("keepalive", 60))
 
-    logging.info("Starting desktop paste listener.")
-    logging.info("Focus a text field before sending voice input from the phone.")
+    logging.info("桌面貼上監聽器已啟動。")
+    logging.info("請先把電腦焦點放到要輸入的欄位。")
 
     try:
         client.connect(
@@ -161,18 +163,15 @@ def main() -> None:
         )
     except socket.gaierror as error:
         raise SystemExit(
-            f"Cannot resolve MQTT host '{host}'. Check desktop/config.json and replace the example host "
-            f"with your real broker hostname or LAN IP. Original error: {error}"
+            f"無法解析 MQTT 主機 '{host}'。請檢查 desktop/config.json，將範例主機改成真實 broker 網域或區網 IP。原始錯誤：{error}"
         ) from error
     except ConnectionRefusedError as error:
         raise SystemExit(
-            f"MQTT broker refused the connection to {host}:{port}. "
-            "Check the port, TLS setting, username/password, and whether the broker allows TCP MQTT."
+            f"MQTT broker 拒絕連線 {host}:{port}。請檢查 port、TLS、帳密，以及 broker 是否開放 TCP MQTT。"
         ) from error
     except TimeoutError as error:
         raise SystemExit(
-            f"Timed out connecting to MQTT broker at {host}:{port}. "
-            "Check network reachability, firewall rules, and broker address."
+            f"連線 MQTT broker {host}:{port} 逾時。請檢查網路、防火牆與 broker 位址。"
         ) from error
 
     client.loop_forever()
