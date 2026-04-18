@@ -1,4 +1,5 @@
 const STORAGE_KEY = "voice_mqtt_desktop_settings";
+const DOWNLOAD_URL = "https://jjtmutw.github.io/web/voice-mqtt-desktop/web/";
 
 const state = {
   client: null,
@@ -31,8 +32,37 @@ const elements = {
   appendEnter: document.querySelector("#append-enter"),
   sendButton: document.querySelector("#send-button"),
   clearButton: document.querySelector("#clear-button"),
+  downloadQrcode: document.querySelector("#download-qrcode"),
   log: document.querySelector("#log"),
 };
+
+function renderDownloadQrcode() {
+  if (!elements.downloadQrcode) {
+    return;
+  }
+
+  elements.downloadQrcode.innerHTML = "";
+
+  if (typeof QRCode === "undefined") {
+    const fallback = document.createElement("a");
+    fallback.href = DOWNLOAD_URL;
+    fallback.target = "_blank";
+    fallback.rel = "noreferrer";
+    fallback.className = "download-link";
+    fallback.textContent = DOWNLOAD_URL;
+    elements.downloadQrcode.append(fallback);
+    return;
+  }
+
+  new QRCode(elements.downloadQrcode, {
+    text: DOWNLOAD_URL,
+    width: 188,
+    height: 188,
+    colorDark: "#0f172a",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.M,
+  });
+}
 
 function normalizeTopicUser(value) {
   return value.trim().replace(/^\/+|\/+$/g, "");
@@ -467,6 +497,7 @@ function clearContent() {
 function bootstrap() {
   loadSettings();
   syncTopicFromUser();
+  renderDownloadQrcode();
   addLog("系統已就緒。請先連線 MQTT。");
 
   if (!hasSpeechApi()) {

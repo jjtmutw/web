@@ -285,6 +285,47 @@ textarea {
   color: var(--accent-2);
 }
 
+.download-card {
+  margin-top: 18px;
+  padding: 24px 28px;
+}
+
+.download-grid {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+}
+
+.download-qrcode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.download-qrcode img,
+.download-qrcode canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.download-link {
+  color: var(--text);
+  word-break: break-all;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.download-link:hover {
+  color: var(--accent);
+}
+
 @keyframes float {
   0%,
   100% {
@@ -339,5 +380,13 @@ textarea {
   .hero,
   .grid > .card {
     padding: 18px;
+  }
+
+  .download-card {
+    padding: 18px;
+  }
+
+  .download-grid {
+    grid-template-columns: 1fr;
   }
 }

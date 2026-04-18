@@ -147,10 +147,27 @@
           <div id="log" class="log" aria-live="polite"></div>
         </section>
       </section>
+
+      <section class="card download-card">
+        <div class="section-head">
+          <p class="eyebrow">Download</p>
+          <h2>手機開啟網址</h2>
+        </div>
+        <div class="download-grid">
+          <div id="download-qrcode" class="download-qrcode" aria-label="下載網址 QR code"></div>
+          <div class="download-copy">
+            <p class="muted">掃描下方 QR code 即可開啟網頁：</p>
+            <a class="download-link" href="https://jjtmutw.github.io/web/voice-mqtt-desktop/web/" target="_blank" rel="noreferrer">https://jjtmutw.github.io/web/voice-mqtt-desktop/web/</a>
+            <p class="muted">Listener 程式下載：</p>
+            <a class="download-link" href="https://jjtmutw.github.io/web/voice-mqtt-desktop/dist/voice-mqtt-listener.zip" target="_blank" rel="noreferrer">https://jjtmutw.github.io/web/voice-mqtt-desktop/dist/voice-mqtt-listener.zip</a>
+          </div>
+        </div>
+      </section>
     </main>
 
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>
