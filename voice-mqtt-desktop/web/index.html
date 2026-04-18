@@ -19,9 +19,9 @@
     <main class="shell">
       <section class="hero card">
         <p class="eyebrow">VOICE TO DESKTOP</p>
-        <h1>手機輸入，電腦即貼</h1>
+        <h1>手機語音與掃碼快速送到電腦</h1>
         <p class="lead">
-          用手機說話或掃碼，內容會立即送到電腦目前游標位置。
+          用手機說話或掃描條碼，再透過 MQTT 傳到電腦端 listener，自動貼到目前游標位置，適合現場輸入、點餐、收銀與快速操作。
         </p>
       </section>
 
@@ -58,23 +58,23 @@
           </label>
 
           <div class="button-row">
-            <button id="connect-button" class="primary-button" type="button">連接 MQTT</button>
+            <button id="connect-button" class="primary-button" type="button">連線 MQTT</button>
             <button id="disconnect-button" class="ghost-button" type="button">中斷連線</button>
           </div>
 
           <p id="mqtt-status" class="muted">
-            請填入支援 WebSocket 的 MQTT 位址。
+            請先設定 WebSocket MQTT 連線資訊。
           </p>
         </section>
 
         <section class="card">
           <div class="section-head">
             <p class="eyebrow">Step 2</p>
-            <h2>語音辨識</h2>
+            <h2>語音輸入</h2>
           </div>
 
           <label class="field">
-            <span>辨識語言</span>
+            <span>語音語系</span>
             <select id="language-select">
               <option value="zh-TW">繁體中文</option>
               <option value="en-US">English</option>
@@ -83,12 +83,12 @@
           </label>
 
           <div class="button-row">
-            <button id="listen-button" class="primary-button" type="button">開始說話</button>
-            <button id="stop-button" class="ghost-button" type="button">停止辨識</button>
+            <button id="listen-button" class="primary-button" type="button">開始錄音</button>
+            <button id="stop-button" class="ghost-button" type="button">停止錄音</button>
           </div>
 
           <p id="speech-status" class="muted">
-            使用手機瀏覽器的內建語音辨識。
+            支援的瀏覽器可直接使用語音辨識。
           </p>
         </section>
 
@@ -100,7 +100,7 @@
 
           <div id="scanner" class="scanner-shell"></div>
           <p id="scan-status" class="muted">
-            可掃描 QR Code 與常見條碼。
+            可使用手機相機掃描 QR Code 或條碼。
           </p>
 
           <div class="button-row">
@@ -109,40 +109,40 @@
           </div>
 
           <p class="muted">
-            掃到內容後會直接帶入下方文字區，並播放提示音。
+            掃描成功後，內容會自動填入下方輸入框。
           </p>
         </section>
 
         <section class="card transcript-card">
           <div class="section-head">
             <p class="eyebrow">Step 4</p>
-            <h2>待發送文字</h2>
+            <h2>確認並送出</h2>
           </div>
 
           <label class="field">
-            <span>內容</span>
-            <textarea id="transcript-input" rows="6" placeholder="語音結果或掃碼結果會出現在這裡，也可以手動修改後再送出。"></textarea>
+            <span>文字內容</span>
+            <textarea id="transcript-input" rows="6" placeholder="語音辨識或掃碼結果會顯示在這裡，也可以手動修改後送出。"></textarea>
           </label>
 
           <label class="check-row">
             <input id="append-enter" type="checkbox" checked>
-            <span>貼上後自動送出 Enter</span>
+            <span>送出後自動追加 Enter</span>
           </label>
 
           <div class="button-row">
-            <button id="send-button" class="primary-button" type="button">發送到電腦</button>
-            <button id="clear-button" class="ghost-button" type="button">清空內容</button>
+            <button id="send-button" class="primary-button" type="button">送出到電腦</button>
+            <button id="clear-button" class="ghost-button" type="button">清除內容</button>
           </div>
 
           <p class="muted">
-            電腦端會自動貼到目前焦點位置。
+            送出前請先將電腦游標放到要貼上的位置。
           </p>
         </section>
 
         <section class="card log-card">
           <div class="section-head">
             <p class="eyebrow">Monitor</p>
-            <h2>事件記錄</h2>
+            <h2>執行記錄</h2>
           </div>
           <div id="log" class="log" aria-live="polite"></div>
         </section>
@@ -151,17 +151,31 @@
       <section class="card download-card">
         <div class="section-head">
           <p class="eyebrow">Download</p>
-          <h2>手機開啟網址</h2>
+          <h2>下載與開啟</h2>
         </div>
         <div class="download-grid">
-          <div id="download-qrcode" class="download-qrcode" aria-label="下載網址 QR code"></div>
+          <div id="download-qrcode" class="download-qrcode" aria-label="手機網頁 QR code"></div>
           <div class="download-copy">
-            <p class="muted">掃描下方 QR code 即可開啟網頁：</p>
+            <p class="muted">手機網頁</p>
             <a class="download-link" href="https://jjtmutw.github.io/web/voice-mqtt-desktop/web/" target="_blank" rel="noreferrer">https://jjtmutw.github.io/web/voice-mqtt-desktop/web/</a>
-            <p class="muted">Listener 程式下載：</p>
+            <p class="muted">Listener 下載</p>
             <div id="download-qrcode-listener" class="download-qrcode download-qrcode-inline" aria-label="Listener 下載 QR code"></div>
             <a class="download-link" href="https://jjtmutw.github.io/web/voice-mqtt-desktop/dist/voice-mqtt-listener.zip" target="_blank" rel="noreferrer">https://jjtmutw.github.io/web/voice-mqtt-desktop/dist/voice-mqtt-listener.zip</a>
           </div>
+        </div>
+
+        <div class="usage-note">
+          <p class="usage-note-title">使用操作說明</p>
+          <p>先在電腦上下載並解壓 voice-mqtt-listener.zip，執行其中的 voice-mqtt-listener。</p>
+          <p>在電腦端設定 MQTT 資訊，特別是 topic 要和手機端一致。</p>
+          <p>用手機開啟網頁版：https://jjtmutw.github.io/web/voice-mqtt-desktop/web/</p>
+          <p>在網頁 Step 1 輸入自己的 $user 名稱，例如 alice。</p>
+          <p>系統會自動把 Topic 設成：alice/input</p>
+          <p>電腦端 listener 也要使用同樣的 Topic，例如：alice/input</p>
+          <p>按下 Connect MQTT 連線成功後，就可以開始使用。</p>
+          <p>可用 Step 2 語音輸入，或 Step 3 掃描 QR Code / Barcode。</p>
+          <p>內容會出現在 Step 4，確認後按下送出。</p>
+          <p>電腦上的 listener 收到訊息後，會自動把文字貼到目前游標所在的位置。</p>
         </div>
       </section>
     </main>

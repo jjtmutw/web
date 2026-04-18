@@ -331,6 +331,26 @@ textarea {
   color: var(--accent);
 }
 
+.usage-note {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.usage-note-title {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.usage-note p {
+  margin: 6px 0;
+}
+
 @keyframes float {
   0%,
   100% {
