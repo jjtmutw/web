@@ -1,5 +1,6 @@
 const STORAGE_KEY = "voice_mqtt_desktop_settings";
 const DOWNLOAD_URL = "https://jjtmutw.github.io/web/voice-mqtt-desktop/web/";
+const LISTENER_DOWNLOAD_URL = "https://jjtmutw.github.io/web/voice-mqtt-desktop/dist/voice-mqtt-listener.zip";
 
 const state = {
   client: null,
@@ -33,35 +34,41 @@ const elements = {
   sendButton: document.querySelector("#send-button"),
   clearButton: document.querySelector("#clear-button"),
   downloadQrcode: document.querySelector("#download-qrcode"),
+  listenerDownloadQrcode: document.querySelector("#download-qrcode-listener"),
   log: document.querySelector("#log"),
 };
 
-function renderDownloadQrcode() {
-  if (!elements.downloadQrcode) {
+function renderQrcode(container, url) {
+  if (!container) {
     return;
   }
 
-  elements.downloadQrcode.innerHTML = "";
+  container.innerHTML = "";
 
   if (typeof QRCode === "undefined") {
     const fallback = document.createElement("a");
-    fallback.href = DOWNLOAD_URL;
+    fallback.href = url;
     fallback.target = "_blank";
     fallback.rel = "noreferrer";
     fallback.className = "download-link";
-    fallback.textContent = DOWNLOAD_URL;
-    elements.downloadQrcode.append(fallback);
+    fallback.textContent = url;
+    container.append(fallback);
     return;
   }
 
-  new QRCode(elements.downloadQrcode, {
-    text: DOWNLOAD_URL,
+  new QRCode(container, {
+    text: url,
     width: 188,
     height: 188,
     colorDark: "#0f172a",
     colorLight: "#ffffff",
     correctLevel: QRCode.CorrectLevel.M,
   });
+}
+
+function renderDownloadQrcode() {
+  renderQrcode(elements.downloadQrcode, DOWNLOAD_URL);
+  renderQrcode(elements.listenerDownloadQrcode, LISTENER_DOWNLOAD_URL);
 }
 
 function normalizeTopicUser(value) {

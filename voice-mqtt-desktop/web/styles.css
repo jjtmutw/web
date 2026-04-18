@@ -315,6 +315,11 @@ textarea {
   height: auto;
 }
 
+.download-qrcode-inline {
+  min-height: 188px;
+  margin: 18px 0 12px;
+}
+
 .download-link {
   color: var(--text);
   word-break: break-all;
