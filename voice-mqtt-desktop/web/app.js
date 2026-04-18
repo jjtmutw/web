@@ -12,6 +12,7 @@ const state = {
 
 const elements = {
   brokerUrl: document.querySelector("#broker-url"),
+  topicUser: document.querySelector("#topic-user"),
   topic: document.querySelector("#topic"),
   username: document.querySelector("#username"),
   password: document.querySelector("#password"),
@@ -33,6 +34,32 @@ const elements = {
   log: document.querySelector("#log"),
 };
 
+function normalizeTopicUser(value) {
+  return value.trim().replace(/^\/+|\/+$/g, "");
+}
+
+function buildTopic(user) {
+  const normalizedUser = normalizeTopicUser(user);
+  return normalizedUser ? `${normalizedUser}/input` : "";
+}
+
+function syncTopicFromUser() {
+  elements.topic.value = buildTopic(elements.topicUser.value);
+}
+
+function inferTopicUser(settings) {
+  if (settings.topicUser) {
+    return settings.topicUser;
+  }
+
+  const legacyTopic = (settings.topic || "").trim();
+  if (legacyTopic.endsWith("/input")) {
+    return legacyTopic.slice(0, -"/input".length);
+  }
+
+  return "jj";
+}
+
 function addLog(message, level = "info") {
   const row = document.createElement("div");
   row.className = "log-entry";
@@ -47,8 +74,11 @@ function addLog(message, level = "info") {
 }
 
 function saveSettings() {
+  syncTopicFromUser();
+
   const settings = {
     brokerUrl: elements.brokerUrl.value.trim(),
+    topicUser: normalizeTopicUser(elements.topicUser.value),
     topic: elements.topic.value.trim(),
     username: elements.username.value.trim(),
     password: elements.password.value,
@@ -68,13 +98,14 @@ function loadSettings() {
 
     const settings = JSON.parse(raw);
     elements.brokerUrl.value = settings.brokerUrl || "wss://broker.emqx.io:8084/mqtt";
-    elements.topic.value = settings.topic || "jj/voice/input";
+    elements.topicUser.value = inferTopicUser(settings);
+    syncTopicFromUser();
     elements.username.value = settings.username || "";
     elements.password.value = settings.password || "";
     elements.languageSelect.value = settings.language || "zh-TW";
     elements.appendEnter.checked = settings.appendEnter !== false;
   } catch {
-    addLog("無法載入本機設定，已使用預設值。", "error");
+    addLog("設定載入失敗，已改用預設值。", "error");
   }
 }
 
@@ -112,6 +143,7 @@ function buildPayload(text, source = "mobile-web") {
 }
 
 function publishPayload(text, source = "mobile-web") {
+  syncTopicFromUser();
   const topic = elements.topic.value.trim();
   const normalized = normalizeText(text);
 
@@ -146,6 +178,7 @@ function connectMqtt() {
   }
 
   const brokerUrl = elements.brokerUrl.value.trim();
+  syncTopicFromUser();
   const topic = elements.topic.value.trim();
 
   if (!brokerUrl || !topic) {
@@ -181,12 +214,12 @@ function connectMqtt() {
 
   client.on("connect", () => {
     setMqttStatus(`已連線到 MQTT，可發送到 Topic：${topic}`);
-    addLog(`MQTT 連線成功，Topic：${topic}`);
+    addLog(`MQTT 已連線：${topic}`);
   });
 
   client.on("reconnect", () => {
     setMqttStatus("MQTT 重新連線中...");
-    addLog("MQTT 正在重新連線...");
+    addLog("MQTT 重新連線中...");
   });
 
   client.on("error", (error) => {
@@ -196,7 +229,7 @@ function connectMqtt() {
 
   client.on("close", () => {
     setMqttStatus("MQTT 已中斷連線。");
-    addLog("MQTT 已中斷連線。");
+    addLog("MQTT 已斷線。");
   });
 }
 
@@ -225,7 +258,7 @@ function createRecognition() {
   recognition.onstart = () => {
     state.isListening = true;
     setSpeechStatus("正在聽取語音...");
-    addLog("語音辨識已開始。");
+    addLog("開始語音辨識。");
   };
 
   recognition.onresult = (event) => {
@@ -397,7 +430,7 @@ async function startScanner() {
 
     state.isScanning = true;
     setScanStatus("相機已啟動，請將 QR Code 或 barcode 對準框內。");
-    addLog("掃碼相機已啟動。");
+    addLog("掃碼已啟動。");
   } catch (error) {
     state.isScanning = false;
     setScanStatus("無法啟動相機，請確認已允許相機權限。");
@@ -416,7 +449,7 @@ async function stopScanner() {
     state.isScanning = false;
     state.scanner = null;
     setScanStatus("掃碼已停止。");
-    addLog("掃碼相機已停止。");
+    addLog("掃碼已停止。");
   } catch (error) {
     addLog(`停止掃碼失敗：${error.message}`, "error");
   }
@@ -428,12 +461,13 @@ function sendText() {
 
 function clearContent() {
   elements.transcriptInput.value = "";
-  addLog("已清空文字內容。");
+  addLog("內容已清空。");
 }
 
 function bootstrap() {
   loadSettings();
-  addLog("系統已就緒。先連線 MQTT，再開始語音辨識或掃碼。");
+  syncTopicFromUser();
+  addLog("系統已就緒。請先連線 MQTT。");
 
   if (!hasSpeechApi()) {
     addLog("此瀏覽器可能不支援語音辨識。", "error");
@@ -444,6 +478,7 @@ function bootstrap() {
   }
 }
 
+elements.topicUser.addEventListener("input", syncTopicFromUser);
 elements.connectButton.addEventListener("click", connectMqtt);
 elements.disconnectButton.addEventListener("click", disconnectMqtt);
 elements.listenButton.addEventListener("click", startListening);
