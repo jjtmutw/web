@@ -4,8 +4,6 @@ const LISTENER_DOWNLOAD_URL = "https://jjtmutw.github.io/web/voice-mqtt-desktop/
 
 const state = {
   client: null,
-  recognition: null,
-  isListening: false,
   scanner: null,
   isScanning: false,
   lastScanText: "",
@@ -21,10 +19,6 @@ const elements = {
   connectButton: document.querySelector("#connect-button"),
   disconnectButton: document.querySelector("#disconnect-button"),
   mqttStatus: document.querySelector("#mqtt-status"),
-  languageSelect: document.querySelector("#language-select"),
-  listenButton: document.querySelector("#listen-button"),
-  stopButton: document.querySelector("#stop-button"),
-  speechStatus: document.querySelector("#speech-status"),
   startScanButton: document.querySelector("#start-scan-button"),
   stopScanButton: document.querySelector("#stop-scan-button"),
   scanStatus: document.querySelector("#scan-status"),
@@ -33,9 +27,9 @@ const elements = {
   appendEnter: document.querySelector("#append-enter"),
   sendButton: document.querySelector("#send-button"),
   clearButton: document.querySelector("#clear-button"),
+  remoteButtons: document.querySelectorAll("[data-key-command]"),
   downloadQrcode: document.querySelector("#download-qrcode"),
   listenerDownloadQrcode: document.querySelector("#download-qrcode-listener"),
-  log: document.querySelector("#log"),
 };
 
 function renderQrcode(container, url) {
@@ -97,19 +91,6 @@ function inferTopicUser(settings) {
   return "jj";
 }
 
-function addLog(message, level = "info") {
-  const row = document.createElement("div");
-  row.className = "log-entry";
-  const stamp = new Date().toLocaleTimeString("zh-TW", { hour12: false });
-  row.innerHTML = `<strong>[${stamp}]</strong> ${message}`;
-
-  if (level === "error") {
-    row.style.color = "#ffb3b3";
-  }
-
-  elements.log.prepend(row);
-}
-
 function saveSettings() {
   syncTopicFromUser();
 
@@ -119,7 +100,6 @@ function saveSettings() {
     topic: elements.topic.value.trim(),
     username: elements.username.value.trim(),
     password: elements.password.value,
-    language: elements.languageSelect.value,
     appendEnter: elements.appendEnter.checked,
   };
 
@@ -139,10 +119,9 @@ function loadSettings() {
     syncTopicFromUser();
     elements.username.value = settings.username || "";
     elements.password.value = settings.password || "";
-    elements.languageSelect.value = settings.language || "zh-TW";
     elements.appendEnter.checked = settings.appendEnter !== false;
   } catch {
-    addLog("設定載入失敗，已改用預設值。", "error");
+    setMqttStatus("設定讀取失敗，已使用預設值。");
   }
 }
 
@@ -150,16 +129,8 @@ function setMqttStatus(text) {
   elements.mqttStatus.textContent = text;
 }
 
-function setSpeechStatus(text) {
-  elements.speechStatus.textContent = text;
-}
-
 function setScanStatus(text) {
   elements.scanStatus.textContent = text;
-}
-
-function hasSpeechApi() {
-  return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
 
 function hasQrScannerApi() {
@@ -170,8 +141,18 @@ function normalizeText(text) {
   return text.replace(/\s+/g, " ").trim();
 }
 
-function buildPayload(text, source = "mobile-web") {
+function ensureConnected() {
+  if (!state.client || !state.client.connected) {
+    setMqttStatus("尚未連線 MQTT，請先連線。");
+    return false;
+  }
+
+  return true;
+}
+
+function buildTextPayload(text, source = "mobile-web") {
   return JSON.stringify({
+    action: "text",
     text: normalizeText(text),
     append_enter: elements.appendEnter.checked,
     source,
@@ -179,38 +160,59 @@ function buildPayload(text, source = "mobile-web") {
   });
 }
 
-function publishPayload(text, source = "mobile-web") {
+function buildKeyPayload(key) {
+  return JSON.stringify({
+    action: "key",
+    key,
+    source: "mobile-remote",
+    timestamp: new Date().toISOString(),
+  });
+}
+
+function publishRaw(payload, onSuccessMessage) {
   syncTopicFromUser();
   const topic = elements.topic.value.trim();
-  const normalized = normalizeText(text);
 
-  if (!state.client || !state.client.connected) {
-    addLog("MQTT 尚未連線。", "error");
+  if (!ensureConnected()) {
     return false;
   }
 
-  if (!topic || !normalized) {
-    addLog("請確認 Topic 與文字內容不為空。", "error");
+  if (!topic) {
+    setMqttStatus("Topic 不可空白。");
     return false;
   }
 
   saveSettings();
 
-  state.client.publish(topic, buildPayload(normalized, source), { qos: 0, retain: false }, (error) => {
+  state.client.publish(topic, payload, { qos: 0, retain: false }, (error) => {
     if (error) {
-      addLog(`發送失敗：${error.message}`, "error");
+      setMqttStatus(`送出失敗：${error.message}`);
       return;
     }
 
-    addLog(`已發送內容到 ${topic}：${normalized}`);
+    setMqttStatus(onSuccessMessage);
   });
 
   return true;
 }
 
+function publishText(text, source = "mobile-web") {
+  const normalized = normalizeText(text);
+  if (!normalized) {
+    setMqttStatus("請先輸入內容。");
+    return false;
+  }
+
+  return publishRaw(buildTextPayload(normalized, source), `已送出文字到 ${elements.topic.value.trim()}`);
+}
+
+function publishKeyCommand(key) {
+  return publishRaw(buildKeyPayload(key), `已送出按鍵：${key}`);
+}
+
 function connectMqtt() {
   if (typeof mqtt === "undefined") {
-    addLog("MQTT 前端函式庫沒有載入成功。", "error");
+    setMqttStatus("MQTT 函式庫未載入。");
     return;
   }
 
@@ -219,7 +221,7 @@ function connectMqtt() {
   const topic = elements.topic.value.trim();
 
   if (!brokerUrl || !topic) {
-    addLog("請先輸入 Broker URL 和 Topic。", "error");
+    setMqttStatus("請填入 Broker URL 與 Topic。");
     return;
   }
 
@@ -250,23 +252,19 @@ function connectMqtt() {
   state.client = client;
 
   client.on("connect", () => {
-    setMqttStatus(`已連線到 MQTT，可發送到 Topic：${topic}`);
-    addLog(`MQTT 已連線：${topic}`);
+    setMqttStatus(`已連線 MQTT，可送出到 ${topic}`);
   });
 
   client.on("reconnect", () => {
     setMqttStatus("MQTT 重新連線中...");
-    addLog("MQTT 重新連線中...");
   });
 
   client.on("error", (error) => {
-    setMqttStatus("MQTT 連線錯誤，請檢查 Broker 設定。");
-    addLog(`MQTT 錯誤：${error.message}`, "error");
+    setMqttStatus(`MQTT 錯誤：${error.message}`);
   });
 
   client.on("close", () => {
-    setMqttStatus("MQTT 已中斷連線。");
-    addLog("MQTT 已斷線。");
+    setMqttStatus("MQTT 已中斷。");
   });
 }
 
@@ -276,80 +274,7 @@ function disconnectMqtt() {
     state.client = null;
   }
 
-  setMqttStatus("MQTT 已手動中斷。");
-}
-
-function createRecognition() {
-  if (!hasSpeechApi()) {
-    setSpeechStatus("目前瀏覽器不支援語音辨識 API。建議使用 Android Chrome。");
-    addLog("瀏覽器不支援 SpeechRecognition。", "error");
-    return null;
-  }
-
-  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new Recognition();
-  recognition.lang = elements.languageSelect.value;
-  recognition.continuous = false;
-  recognition.interimResults = true;
-
-  recognition.onstart = () => {
-    state.isListening = true;
-    setSpeechStatus("正在聽取語音...");
-    addLog("開始語音辨識。");
-  };
-
-  recognition.onresult = (event) => {
-    let finalText = "";
-    let interimText = "";
-
-    for (let i = event.resultIndex; i < event.results.length; i += 1) {
-      const segment = event.results[i][0]?.transcript || "";
-      if (event.results[i].isFinal) {
-        finalText += segment;
-      } else {
-        interimText += segment;
-      }
-    }
-
-    const merged = normalizeText(finalText || interimText);
-    elements.transcriptInput.value = merged;
-    setSpeechStatus(finalText ? "辨識完成，可以送出。" : "辨識中...");
-  };
-
-  recognition.onerror = (event) => {
-    state.isListening = false;
-    setSpeechStatus(`語音辨識錯誤：${event.error}`);
-    addLog(`語音辨識錯誤：${event.error}`, "error");
-  };
-
-  recognition.onend = () => {
-    state.isListening = false;
-    setSpeechStatus("語音辨識已停止。");
-    addLog("語音辨識已停止。");
-  };
-
-  return recognition;
-}
-
-function startListening() {
-  if (!state.recognition) {
-    state.recognition = createRecognition();
-  }
-
-  if (!state.recognition || state.isListening) {
-    return;
-  }
-
-  elements.transcriptInput.value = "";
-  state.recognition.lang = elements.languageSelect.value;
-  saveSettings();
-  state.recognition.start();
-}
-
-function stopListening() {
-  if (state.recognition && state.isListening) {
-    state.recognition.stop();
-  }
+  setMqttStatus("MQTT 已中斷。");
 }
 
 function getAudioContext() {
@@ -368,7 +293,6 @@ function getAudioContext() {
 async function playSuccessDoubleBeep() {
   const audioContext = getAudioContext();
   if (!audioContext) {
-    addLog("此瀏覽器不支援提示音播放。", "error");
     return;
   }
 
@@ -418,12 +342,9 @@ function handleScanSuccess(decodedText) {
 
   state.lastScanText = normalized;
   elements.transcriptInput.value = normalized;
-  setScanStatus("掃描成功，內容已直接帶入待發送文字區。");
-  addLog(`掃描成功：${normalized}`);
+  setScanStatus("掃描成功，內容已帶入文字框。");
   flashCard(elements.scannerCard);
-  playSuccessDoubleBeep().catch((error) => {
-    addLog(`提示音播放失敗：${error.message}`, "error");
-  });
+  playSuccessDoubleBeep().catch(() => {});
 }
 
 async function startScanner() {
@@ -432,8 +353,7 @@ async function startScanner() {
   }
 
   if (!hasQrScannerApi()) {
-    setScanStatus("掃碼元件未載入成功，請重新整理頁面。");
-    addLog("Html5Qrcode 函式庫沒有載入成功。", "error");
+    setScanStatus("掃描模組未載入。");
     return;
   }
 
@@ -466,12 +386,10 @@ async function startScanner() {
     );
 
     state.isScanning = true;
-    setScanStatus("相機已啟動，請將 QR Code 或 barcode 對準框內。");
-    addLog("掃碼已啟動。");
+    setScanStatus("相機已開啟，請對準 QR Code 或條碼。");
   } catch (error) {
     state.isScanning = false;
-    setScanStatus("無法啟動相機，請確認已允許相機權限。");
-    addLog(`啟動掃碼失敗：${error.message}`, "error");
+    setScanStatus(`無法啟動相機：${error.message}`);
   }
 }
 
@@ -485,46 +403,51 @@ async function stopScanner() {
     await state.scanner.clear();
     state.isScanning = false;
     state.scanner = null;
-    setScanStatus("掃碼已停止。");
-    addLog("掃碼已停止。");
+    setScanStatus("掃描已停止。");
   } catch (error) {
-    addLog(`停止掃碼失敗：${error.message}`, "error");
+    setScanStatus(`停止掃描失敗：${error.message}`);
   }
 }
 
 function sendText() {
-  publishPayload(elements.transcriptInput.value, "mobile-web");
+  publishText(elements.transcriptInput.value, "mobile-web");
 }
 
 function clearContent() {
   elements.transcriptInput.value = "";
-  addLog("內容已清空。");
+  elements.transcriptInput.focus();
+}
+
+function handleRemoteButtonClick(event) {
+  const button = event.currentTarget;
+  const key = button.dataset.keyCommand;
+  if (!key) {
+    return;
+  }
+
+  publishKeyCommand(key);
 }
 
 function bootstrap() {
   loadSettings();
   syncTopicFromUser();
   renderDownloadQrcode();
-  addLog("系統已就緒。請先連線 MQTT。");
-
-  if (!hasSpeechApi()) {
-    addLog("此瀏覽器可能不支援語音辨識。", "error");
-  }
 
   if (!hasQrScannerApi()) {
-    addLog("此瀏覽器或網頁目前無法使用掃碼元件。", "error");
+    setScanStatus("掃描模組未載入。");
   }
 }
 
 elements.topicUser.addEventListener("input", syncTopicFromUser);
 elements.connectButton.addEventListener("click", connectMqtt);
 elements.disconnectButton.addEventListener("click", disconnectMqtt);
-elements.listenButton.addEventListener("click", startListening);
-elements.stopButton.addEventListener("click", stopListening);
 elements.startScanButton.addEventListener("click", startScanner);
 elements.stopScanButton.addEventListener("click", stopScanner);
 elements.sendButton.addEventListener("click", sendText);
 elements.clearButton.addEventListener("click", clearContent);
+elements.remoteButtons.forEach((button) => {
+  button.addEventListener("click", handleRemoteButtonClick);
+});
 
 window.addEventListener("beforeunload", () => {
   if (state.client) {

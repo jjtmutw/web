@@ -241,7 +241,7 @@ textarea {
 }
 
 .transcript-card,
-.log-card {
+.remote-card {
   min-height: 100%;
 }
 
@@ -259,30 +259,66 @@ textarea {
   display: block;
 }
 
-
-.log {
-  min-height: 240px;
-  max-height: 360px;
-  overflow: auto;
-  padding: 16px;
-  border-radius: var(--radius-md);
-  background: rgba(4, 10, 19, 0.76);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 0.95rem;
-  line-height: 1.6;
+.remote-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+  grid-template-areas:
+    ". up pageup"
+    "left down right"
+    ". . pagedown";
 }
 
-.log-entry {
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+.remote-up {
+  grid-area: up;
 }
 
-.log-entry:last-child {
-  border-bottom: 0;
+.remote-pageup {
+  grid-area: pageup;
 }
 
-.log-entry strong {
-  color: var(--accent-2);
+.remote-left {
+  grid-area: left;
+}
+
+.remote-down {
+  grid-area: down;
+}
+
+.remote-right {
+  grid-area: right;
+}
+
+.remote-pagedown {
+  grid-area: pagedown;
+}
+
+.remote-button {
+  min-height: 76px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03)),
+    rgba(4, 10, 19, 0.82);
+  color: var(--text);
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.remote-button:hover,
+.remote-button:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(104, 225, 178, 0.45);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+  outline: none;
+}
+
+.remote-button:active {
+  transform: translateY(1px) scale(0.99);
 }
 
 .download-card {
@@ -413,5 +449,13 @@ textarea {
 
   .download-grid {
     grid-template-columns: 1fr;
+  }
+
+  .remote-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "up pageup"
+      "left right"
+      "down pagedown";
   }
 }
