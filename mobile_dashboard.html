@@ -1040,7 +1040,7 @@
     }
 
     .flip-card.flip-card-changing {
-      animation: flip-card-pop 0.85s cubic-bezier(0.2, 0.76, 0.2, 1);
+      animation: flip-card-pop 1.25s cubic-bezier(0.2, 0.76, 0.2, 1);
     }
 
     .flip-digit {
@@ -1063,7 +1063,7 @@
     }
 
     .flip-separator span {
-      width: clamp(9px, 1.7vw, 20px);
+      width: clamp(12px, 2.2vw, 26px);
       aspect-ratio: 1;
       display: block;
       border-radius: 50%;
@@ -1332,7 +1332,7 @@
       }
 
       .flip-separator span {
-        width: 8px;
+        width: 10px;
       }
 
       .flip-clock-message {
@@ -1480,7 +1480,7 @@
       }
 
       .flip-separator span {
-        width: clamp(7px, 1.8svh, 12px);
+        width: clamp(10px, 2.5svh, 16px);
       }
 
       .flip-clock-message {
@@ -1556,7 +1556,7 @@
             <div class="form-stack">
               <label>
                 Flip clock lower title
-                <input id="clockMessageInput" value="歡迎簡文山教授來訪" autocomplete="off">
+                <input id="clockMessageInput" value="歡迎參訪AIoT實驗室" autocomplete="off">
               </label>
               <div class="button-row">
                 <button id="saveClockMessageButton">Save Message</button>
@@ -1637,7 +1637,7 @@
             <div class="flip-card" data-clock-digit="4"><span class="flip-digit">0</span></div>
             <div class="flip-card" data-clock-digit="5"><span class="flip-digit">0</span></div>
           </div>
-          <div class="flip-clock-message" id="flipClockMessage">歡迎簡文山教授來訪</div>
+          <div class="flip-clock-message" id="flipClockMessage">歡迎參訪AIoT實驗室</div>
         </section>
       </div>
     </section>
@@ -1649,7 +1649,7 @@
     const WEATHER_STORAGE_KEY = "system-core-weather-cities-v1";
     const CLOCK_MESSAGE_STORAGE_KEY = "system-core-clock-message-v1";
     const DEFAULT_NAMES = ["Preview Mode"];
-    const DEFAULT_CLOCK_MESSAGE = "歡迎簡文山教授來訪";
+    const DEFAULT_CLOCK_MESSAGE = "歡迎參訪AIoT實驗室";
     const WEATHER_ROTATION_MS = 10000;
     const DEFAULT_WEATHER_LOCATIONS = [
       { name: "台北", latitude: 25.033, longitude: 121.5654, timezone: "Asia/Taipei" },
