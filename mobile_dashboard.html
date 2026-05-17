@@ -11,6 +11,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon.svg">
+  <link rel="preload" href="./assets/smart-weather-taipei101.png?v=20260517" as="image">
   <title>Windows System MQTT Dashboard</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
@@ -762,7 +763,7 @@
       background:
         linear-gradient(90deg, rgba(0, 8, 20, 0.76), rgba(0, 8, 20, 0.18) 38%, rgba(0, 8, 20, 0.72)),
         linear-gradient(180deg, rgba(0, 9, 24, 0.1), rgba(0, 9, 24, 0.88)),
-        url("./assets/smart-weather-taipei101.png") center 48% / cover no-repeat;
+        url("./assets/smart-weather-taipei101.png?v=20260517") center 48% / cover no-repeat;
       opacity: 0.86;
     }
 
@@ -1053,7 +1054,7 @@
         background:
           linear-gradient(90deg, rgba(0, 8, 20, 0.58), rgba(0, 8, 20, 0.12) 44%, rgba(0, 8, 20, 0.58)),
           linear-gradient(180deg, rgba(0, 9, 24, 0.04), rgba(0, 9, 24, 0.86)),
-          url("./assets/smart-weather-taipei101.png") 35% 48% / auto 112% no-repeat;
+          url("./assets/smart-weather-taipei101.png?v=20260517") 35% 48% / auto 112% no-repeat;
         opacity: 0.9;
       }
 
@@ -1192,7 +1193,7 @@
         background:
           linear-gradient(90deg, rgba(0, 8, 20, 0.58), rgba(0, 8, 20, 0.12) 44%, rgba(0, 8, 20, 0.62)),
           linear-gradient(180deg, rgba(0, 9, 24, 0.02), rgba(0, 9, 24, 0.84)),
-          url("./assets/smart-weather-taipei101.png") center 48% / cover no-repeat;
+          url("./assets/smart-weather-taipei101.png?v=20260517") center 48% / cover no-repeat;
         opacity: 0.9;
       }
 
@@ -1771,8 +1772,8 @@
 
     function weatherApiUrl(location) {
       const params = new URLSearchParams({
-        latitude: location.latitude,
-        longitude: location.longitude,
+        latitude: String(Number(location.latitude)),
+        longitude: String(Number(location.longitude)),
         current: "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m",
         daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
         timezone: location.timezone || "auto",
@@ -1791,9 +1792,30 @@
       return `https://geocoding-api.open-meteo.com/v1/search?${params.toString()}`;
     }
 
+    function hasWeatherCoordinates(location) {
+      const latitude = Number(location.latitude);
+      const longitude = Number(location.longitude);
+      return location.latitude !== null &&
+        location.latitude !== undefined &&
+        location.latitude !== "" &&
+        location.longitude !== null &&
+        location.longitude !== undefined &&
+        location.longitude !== "" &&
+        Number.isFinite(latitude) &&
+        Number.isFinite(longitude) &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180;
+    }
+
     async function resolveWeatherLocation(location) {
-      if (Number.isFinite(Number(location.latitude)) && Number.isFinite(Number(location.longitude))) {
-        return location;
+      if (hasWeatherCoordinates(location)) {
+        return {
+          ...location,
+          latitude: Number(location.latitude),
+          longitude: Number(location.longitude)
+        };
       }
 
       const response = await fetch(weatherGeocodeUrl(location.name), { cache: "no-store" });
@@ -1821,7 +1843,16 @@
       }
 
       const response = await fetch(weatherApiUrl(resolved), { cache: "no-store" });
-      if (!response.ok) throw new Error(`Weather ${response.status}`);
+      if (!response.ok) {
+        let detail = "";
+        try {
+          const errorData = await response.json();
+          detail = errorData.reason ? `: ${errorData.reason}` : "";
+        } catch (error) {
+          // Some network errors do not include JSON details.
+        }
+        throw new Error(`Weather ${response.status}${detail}`);
+      }
       return response.json();
     }
 
