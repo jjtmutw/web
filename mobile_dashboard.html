@@ -967,7 +967,7 @@
       grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
       align-items: center;
       justify-items: center;
-      gap: clamp(16px, 3.6svh, 42px);
+      gap: clamp(22px, 4.8svh, 58px);
       min-height: 0;
       text-align: center;
       overflow: hidden;
@@ -979,7 +979,7 @@
       color: #d1d1d1;
       font-weight: 900;
       letter-spacing: 0;
-      line-height: 1;
+      line-height: 0.88;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -989,13 +989,13 @@
     .flip-clock-date {
       align-self: end;
       font-size: clamp(34px, 7vw, 84px);
-      transform: translateY(0.18em);
+      transform: translateY(0.08em);
     }
 
     .flip-clock-message {
       align-self: start;
       font-size: clamp(34px, 6.4vw, 78px);
-      transform: translateY(-0.12em);
+      transform: translateY(-0.04em);
     }
 
     .flip-clock-row {
@@ -1058,16 +1058,17 @@
 
     .flip-separator {
       display: grid;
-      gap: clamp(18px, 4vw, 46px);
-      padding: 0 clamp(0px, 0.4vw, 6px);
+      gap: clamp(14px, 3vw, 34px);
+      padding: 0 clamp(0px, 0.25vw, 4px);
     }
 
     .flip-separator span {
-      width: clamp(14px, 3vw, 34px);
+      width: clamp(9px, 1.7vw, 20px);
       aspect-ratio: 1;
       display: block;
       border-radius: 50%;
       background: #d2d2d2;
+      opacity: 0.9;
       box-shadow: 0 3px 8px rgba(0, 0, 0, 0.55);
     }
 
@@ -1305,7 +1306,7 @@
 
       .flip-clock-stage {
         grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
-        gap: clamp(12px, 3svh, 26px);
+        gap: clamp(18px, 4svh, 34px);
       }
 
       .flip-clock-date {
@@ -1327,11 +1328,11 @@
       }
 
       .flip-separator {
-        gap: 18px;
+        gap: 13px;
       }
 
       .flip-separator span {
-        width: 12px;
+        width: 8px;
       }
 
       .flip-clock-message {
@@ -1452,11 +1453,14 @@
       }
 
       .flip-clock-stage {
-        gap: clamp(10px, 3svh, 18px);
+        grid-template-rows: minmax(0, 0.78fr) auto minmax(0, 0.78fr);
+        gap: clamp(26px, 7svh, 42px);
       }
 
       .flip-clock-date {
-        font-size: clamp(32px, 7vw, 58px);
+        font-size: clamp(26px, 5.8vw, 46px);
+        line-height: 0.82;
+        transform: translateY(0);
       }
 
       .flip-clock-row {
@@ -1471,8 +1475,18 @@
         font-size: clamp(88px, 27svh, 126px);
       }
 
+      .flip-separator {
+        gap: clamp(10px, 3svh, 18px);
+      }
+
+      .flip-separator span {
+        width: clamp(7px, 1.8svh, 12px);
+      }
+
       .flip-clock-message {
-        font-size: clamp(30px, 7vw, 58px);
+        font-size: clamp(24px, 5.4vw, 44px);
+        line-height: 0.84;
+        transform: translateY(0);
       }
     }
   </style>
