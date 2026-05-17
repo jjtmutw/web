@@ -964,7 +964,7 @@
 
     .flip-clock-stage {
       display: grid;
-      grid-template-rows: 1fr auto auto auto 1fr;
+      grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
       align-items: center;
       justify-items: center;
       gap: clamp(16px, 3.6svh, 42px);
@@ -989,11 +989,13 @@
     .flip-clock-date {
       align-self: end;
       font-size: clamp(34px, 7vw, 84px);
+      transform: translateY(0.18em);
     }
 
     .flip-clock-message {
       align-self: start;
       font-size: clamp(34px, 6.4vw, 78px);
+      transform: translateY(-0.12em);
     }
 
     .flip-clock-row {
@@ -1038,7 +1040,7 @@
     }
 
     .flip-card.flip-card-changing {
-      animation: flip-card-pop 0.34s ease;
+      animation: flip-card-pop 0.85s cubic-bezier(0.2, 0.76, 0.2, 1);
     }
 
     .flip-digit {
@@ -1071,7 +1073,7 @@
 
     @keyframes flip-card-pop {
       0% { transform: rotateX(0deg); filter: brightness(1); }
-      45% { transform: rotateX(-12deg); filter: brightness(0.72); }
+      45% { transform: rotateX(-16deg); filter: brightness(0.72); }
       100% { transform: rotateX(0deg); filter: brightness(1); }
     }
 
@@ -1302,7 +1304,7 @@
       }
 
       .flip-clock-stage {
-        grid-template-rows: 1fr auto auto auto 1fr;
+        grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
         gap: clamp(12px, 3svh, 26px);
       }
 
